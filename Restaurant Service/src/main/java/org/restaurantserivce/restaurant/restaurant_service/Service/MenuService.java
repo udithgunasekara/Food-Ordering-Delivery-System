@@ -8,5 +8,5 @@ public interface MenuService {
 
     MenuDTO createMenu(MenuDTO menuDTO);
     List<MenuDTO> getAllMenus(String restId);
-    String deleteById(String menuId);
+    void deleteById(String menuId);
 }

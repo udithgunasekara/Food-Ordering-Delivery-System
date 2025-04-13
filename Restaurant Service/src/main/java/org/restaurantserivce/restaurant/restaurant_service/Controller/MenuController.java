@@ -29,11 +29,11 @@ public class MenuController {
         return menuService.getAllMenus(restId);
     }
 
-    @DeleteMapping
-    @ResponseStatus(HttpStatus.FOUND)
-    public String deleteMenu(@RequestParam String menuId){
-        String result = menuService.deleteById(menuId);
-        return result;
+    //we just need to rest id and menu id for deletion
+    @DeleteMapping("/{menuId}")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deleteMenu(@PathVariable String menuId){
+        menuService.deleteById(menuId);
     }
 
 }

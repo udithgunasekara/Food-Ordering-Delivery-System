@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 public class Menu {
     @Id
-    private String Id;
+    private String id;
     private String restaurantName;
     private String restId;
     private int itemCount;

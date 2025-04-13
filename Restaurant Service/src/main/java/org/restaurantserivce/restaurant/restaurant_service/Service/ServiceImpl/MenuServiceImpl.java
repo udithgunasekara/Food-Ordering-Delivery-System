@@ -45,8 +45,16 @@ public class MenuServiceImpl implements MenuService {
 
 
     @Override
-    public String deleteById(String menuId) {
-      //  menuRepo.findById(menuId);
-        return "";
+    public void deleteById(String menuId) {
+        //create simple delete opt
+        //need to find rest menu list and filter needed menu and do the deletion
+        //but no need that just find the give menuId and do the deletion
+        boolean exists = menuRepo.existsById(menuId);
+        if(!exists){
+            throw new IllegalArgumentException("Menu with ID " + menuId + " not found.");
+        }
+
+        menuRepo.deleteMenuById(menuId);
+
     }
 }

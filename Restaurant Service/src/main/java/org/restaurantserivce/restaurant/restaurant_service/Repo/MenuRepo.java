@@ -11,4 +11,7 @@ public interface MenuRepo extends MongoRepository<Menu, Integer> {
 
 
     List<Menu> findByRestId(String restId);
+    void deleteMenuById(String id);
+
+    boolean existsById(String id);
 }
