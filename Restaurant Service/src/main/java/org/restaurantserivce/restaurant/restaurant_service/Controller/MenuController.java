@@ -6,6 +6,8 @@ import org.restaurantserivce.restaurant.restaurant_service.Service.MenuService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping(path = "menu")
 @AllArgsConstructor
@@ -23,7 +25,7 @@ public class MenuController {
     // we will give the restaurant id and that will return all menus
     @GetMapping("/{restId}")
     @ResponseStatus(HttpStatus.FOUND)
-    public MenuDTO getAllMenus(@RequestParam String restId){
+    public List<MenuDTO> getAllMenus(@RequestParam String restId){
         return menuService.getAllMenus(restId);
     }
 

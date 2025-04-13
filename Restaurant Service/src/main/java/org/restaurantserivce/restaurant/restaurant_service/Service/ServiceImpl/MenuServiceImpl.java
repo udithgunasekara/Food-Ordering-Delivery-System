@@ -8,6 +8,10 @@ import org.restaurantserivce.restaurant.restaurant_service.Service.MenuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class MenuServiceImpl implements MenuService {
 
@@ -21,15 +25,24 @@ public class MenuServiceImpl implements MenuService {
     }
 
     @Override
-    public MenuDTO getAllMenus(String restId) {
+    public List<MenuDTO> getAllMenus(String restId) {
 
-        menuRepo.findByRestId(restId);
+        //we use simple for loop and arraylist
+        List<Menu> menus = menuRepo.findByRestId(restId);
+        List<MenuDTO> menuDTOS = new ArrayList<>();
 
+        if(menus.isEmpty()){
+            throw new RuntimeException("menu Id is not found");
+        }else {
+            //create for loop
+            for (Menu menu : menus) {
+                menuDTOS.add(MenuMapper.toDTO(menu));
+            }
+            return menuDTOS;
+        }
 
-
-
-        return null;
     }
+
 
     @Override
     public String deleteById(String menuId) {
