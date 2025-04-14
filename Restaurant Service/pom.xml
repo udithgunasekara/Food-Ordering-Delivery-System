@@ -78,6 +78,7 @@
                 </configuration>
             </plugin>
         </plugins>
+        <finalName>restaurant-service-rest</finalName>
     </build>
 
 </project>
