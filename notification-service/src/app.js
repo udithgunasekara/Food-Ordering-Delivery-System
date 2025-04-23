@@ -15,7 +15,7 @@ connectDB();
 app.use('/api/notifications', notificationRoutes);
 
 // Start Kafka Consumer
-//startKafkaConsumer();
+startKafkaConsumer();
 
 // Start Express Server
 app.listen(PORT, () => {
