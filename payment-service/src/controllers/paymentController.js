@@ -1,9 +1,8 @@
 import Transaction from '../models/Transaction.js';
 import { initiatePayment, processRefund } from '../services/paymentGatewayService.js';
-import { produceKafkaEvent } from '../services/kafkaProducer.js';
 
 export async function processPayment(req, res) {
-  const { orderId, amount, customerId, currency = 'LKR' } = req.body;
+  const { orderId, amount, customerId, currency = 'LKR', phone, email } = req.body;
   try {
     const paymentResult = await initiatePayment({ orderId, amount, customerId, currency });
     const transaction = new Transaction({
@@ -17,31 +16,18 @@ export async function processPayment(req, res) {
     });
     await transaction.save();
 
-    await produceKafkaEvent('payment-processed', {
+    // Log notification instead of producing Kafka event
+    console.log('Notification:', {
       orderId,
-      paymentId: paymentResult.paymentId,
-      status: paymentResult.status,
-      amount,
       customerId,
+      amount,
+      status: paymentResult.status,
+      message: paymentResult.status === 'SUCCESS'
+        ? `Payment of ${currency} ${amount} for order #${orderId} was successful.`
+        : `Payment of ${currency} ${amount} for order #${orderId} failed.`,
+      phone,
+      email,
     });
-
-    if (paymentResult.status === 'SUCCESS') {
-      await produceKafkaEvent('payment-notification', {
-        orderId,
-        customerId,
-        amount,
-        status: 'SUCCESS',
-        message: `Payment of ${currency} ${amount} for order #${orderId} was successful.`,
-      });
-    } else {
-      await produceKafkaEvent('payment-notification', {
-        orderId,
-        customerId,
-        amount,
-        status: 'FAILED',
-        message: `Payment of ${currency} ${amount} for order #${orderId} failed.`,
-      });
-    }
 
     res.status(200).json(paymentResult);
   } catch (error) {
@@ -51,7 +37,7 @@ export async function processPayment(req, res) {
 }
 
 export async function refundPayment(req, res) {
-  const { orderId, paymentId, amount } = req.body;
+  const { orderId, paymentId, amount, phone, email } = req.body;
   try {
     const refundResult = await processRefund({ paymentId, amount });
     const transaction = new Transaction({
@@ -64,18 +50,14 @@ export async function refundPayment(req, res) {
     });
     await transaction.save();
 
-    await produceKafkaEvent('payment-processed', {
-      orderId,
-      paymentId,
-      status: 'REFUNDED',
-      amount,
-    });
-
-    await produceKafkaEvent('payment-notification', {
+    // Log notification instead of producing Kafka event
+    console.log('Notification:', {
       orderId,
       amount,
       status: 'REFUNDED',
       message: `Refund of LKR ${amount} for order #${orderId} has been processed.`,
+      phone,
+      email,
     });
 
     res.status(200).json(refundResult);

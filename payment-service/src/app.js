@@ -1,10 +1,11 @@
 import express from 'express';
 import paymentRoutes from './routes/paymentRoutes.js';
 import { connectDB } from './config/db.js';
-import { startKafkaConsumer } from './services/kafkaConsumer.js';
-import { initializeKafkaProducer } from './services/kafkaProducer.js';
 import cors from 'cors';
 import helmet from 'helmet';
+
+import dotenv from 'dotenv';
+dotenv.config();
 
 const app = express();
 
@@ -16,12 +17,10 @@ app.use(express.json());
 // Routes
 app.use('/api/payments', paymentRoutes);
 
-// Initialize database and Kafka
+// Initialize database
 async function startServer() {
   try {
     await connectDB();
-    await initializeKafkaProducer();
-    await startKafkaConsumer();
     console.log('Payment Microservice initialized');
   } catch (error) {
     console.error('Failed to start server:', error);
