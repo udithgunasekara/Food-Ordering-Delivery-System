@@ -1,10 +1,11 @@
 package org.restaurantserivce.restaurant.restaurant_service.Entity;
 
 
-import jakarta.annotation.Generated;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
 
 @Document(collection = "menu")
 @AllArgsConstructor
@@ -15,5 +16,6 @@ public class Menu {
     private String id;
     private String restaurantName;
     private String restId;
+    private List<MenuItems> items;
     private int itemCount;
 }
