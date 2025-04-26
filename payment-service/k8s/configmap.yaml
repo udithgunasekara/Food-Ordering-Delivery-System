@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-config
+  namespace: food-delivery
+data:
+  mongodb-uri: mongodb+srv://<username>:<password>@cluster0.mongodb.net/payment-service?retryWrites=true&w=majority

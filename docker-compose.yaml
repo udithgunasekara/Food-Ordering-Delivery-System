@@ -1,0 +1,66 @@
+services:
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+    environment:
+      - PORT=${PAYMENT_SERVICE_PORT}
+      - MONGODB_URI=${MONGODB_URI}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - API_KEY=${API_KEY}
+    depends_on:
+      - kafka
+    networks:
+      - food-delivery-network
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+    environment:
+      - PORT=${NOTIFICATION_SERVICE_PORT}
+      - MONGO_URI=${MONGO_URI} 
+      - KAFKA_BROKER=${KAFKA_BROKER}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - API_KEY=${API_KEY}
+    depends_on:
+      - kafka
+    restart: on-failure
+    networks:
+      - food-delivery-network
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+    networks:
+      - food-delivery-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_PORT}:${KAFKA_PORT}"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # Define all required topics
+      KAFKA_CREATE_TOPICS: "order-placed:1:1,delivery-assigned:1:1,payment-events:1:1"
+    networks:
+      - food-delivery-network
+
+networks:
+  food-delivery-network:
+    driver: bridge
