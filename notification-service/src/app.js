@@ -3,7 +3,9 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import connectDB from './config/db.js';
 import { startKafkaConsumer } from './services/kafkaConsumer.js';
 import { PORT } from './config/config.js';
+import dotenv from 'dotenv';
 
+dotenv.config();
 
 const app = express();
 app.use(express.json());

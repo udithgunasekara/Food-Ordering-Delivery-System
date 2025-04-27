@@ -1,8 +1,9 @@
 import { Kafka } from 'kafkajs';
+import { KAFKA_BROKER } from './config.js';
 
 const kafka = new Kafka({
   clientId: 'payment-service',
-  brokers: [process.env.KAFKA_BROKER || 'kafka:9092'],
+  brokers: [KAFKA_BROKER],
 });
 
 let producer;
