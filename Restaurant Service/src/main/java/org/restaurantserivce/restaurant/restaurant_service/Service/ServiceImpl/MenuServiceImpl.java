@@ -57,4 +57,24 @@ public class MenuServiceImpl implements MenuService {
         menuRepo.deleteMenuById(menuId);
 
     }
+
+    @Override
+    public MenuDTO updateMenu(MenuDTO menuDTO) {
+        //updates doing
+
+        //check exists
+        //introduction of the new varible
+        Menu menu;
+        menu = MenuMapper.toEntity(menuDTO);
+
+        boolean exists = menuRepo.existsById(menu.getRestId());
+        if(!exists){
+            throw new RuntimeException("Invalid update");
+        }
+        menu = menuRepo.save(menu);
+        return MenuMapper.toDTO(menu);
+
+    }
+
+
 }
