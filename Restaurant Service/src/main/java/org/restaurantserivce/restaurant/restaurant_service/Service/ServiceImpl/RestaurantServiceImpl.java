@@ -23,6 +23,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         }else if(status.equals("OFF")) {
             reststatus = false;
         }
-        return restaurantRepo.updateStatus(reststatus);
+        return false;
+        //restaurantRepo.updateStatus(reststatus);
     }
 }

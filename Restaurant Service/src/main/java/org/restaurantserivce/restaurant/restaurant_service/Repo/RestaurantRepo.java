@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface RestaurantRepo extends MongoRepository<Restaurant, Integer> {
-    boolean updateStatus(boolean status);
+   // boolean updateStatus(boolean status);
 }
