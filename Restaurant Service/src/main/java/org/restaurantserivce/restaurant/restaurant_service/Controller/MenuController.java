@@ -17,7 +17,7 @@ public class MenuController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MenuDTO createMenu(@RequestBody MenuDTO menuDTO){
+    public MenuDTO createMenu(@RequestBody MenuDTO menuDTO) {
         return menuService.createMenu(menuDTO);
     }
 
@@ -25,15 +25,23 @@ public class MenuController {
     // we will give the restaurant id and that will return all menus
     @GetMapping("/{restId}")
     @ResponseStatus(HttpStatus.FOUND)
-    public List<MenuDTO> getAllMenus(@RequestParam String restId){
+    public List<MenuDTO> getAllMenus(@RequestParam String restId) {
         return menuService.getAllMenus(restId);
     }
 
     //we just need to rest id and menu id for deletion
     @DeleteMapping("/{menuId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deleteMenu(@PathVariable String menuId){
+    public void deleteMenu(@PathVariable String menuId) {
         menuService.deleteById(menuId);
     }
+
+    //update
+    @PutMapping()
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public MenuDTO updateMenu(@RequestBody MenuDTO menuDTO) {
+        return menuService.updateMenu(menuDTO);
+    }
+
 
 }

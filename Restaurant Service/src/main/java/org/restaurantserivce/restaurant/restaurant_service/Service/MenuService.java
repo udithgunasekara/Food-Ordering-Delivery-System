@@ -9,4 +9,6 @@ public interface MenuService {
     MenuDTO createMenu(MenuDTO menuDTO);
     List<MenuDTO> getAllMenus(String restId);
     void deleteById(String menuId);
+    MenuDTO updateMenu(MenuDTO menuDTO);
+
 }
