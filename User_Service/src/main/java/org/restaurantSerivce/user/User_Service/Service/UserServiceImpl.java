@@ -3,6 +3,7 @@ package org.restaurantSerivce.user.User_Service.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalUserResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.UserResponseDTO;
 import org.restaurantSerivce.user.User_Service.Exceptions.ResourceAlreadyExistException;
 import org.restaurantSerivce.user.User_Service.Exceptions.ResourceNotFoundException;
@@ -169,5 +170,13 @@ public class UserServiceImpl implements IUserService {
     @Override
     public List<String> getAllRoles() {
         return Arrays.stream(RoleType.values()).map(Enum::name).toList();
+    }
+
+    //---------------internal service operations ----------------
+
+
+    public InternalUserResponseDTO getUserForInternal(String useremail) {
+        User user = userRepository.findByEmail(useremail);
+        return UserMapper.userToInternalUserDTO(user);
     }
 }
