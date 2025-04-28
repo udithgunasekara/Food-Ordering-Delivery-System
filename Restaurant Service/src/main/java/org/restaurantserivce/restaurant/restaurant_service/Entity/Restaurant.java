@@ -1,23 +1,17 @@
 package org.restaurantserivce.restaurant.restaurant_service.Entity;
 
-
-import lombok.*;
-import org.springframework.data.annotation.Id;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-
-@Document(collection = "menu")
-@AllArgsConstructor
+@Document(collection = "Restaurant")
 @Data
+@AllArgsConstructor
 @NoArgsConstructor
-public class Menu {
-    @Id
+public class Restaurant {
     private String id;
     private String restaurantName;
     private String restId;
-    private List<MenuItems> items;
-    private int itemCount;
-
-
+    private boolean status;
 }
