@@ -6,14 +6,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.restaurantSerivce.user.User_Service.Model.Principle.UserPrinciple;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Log4j2
 @Component
@@ -39,7 +44,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             final String username = jwtTokenProvider.getUsernameFromToken(token);
             if(username != null){
-                UserDetails userDetails = customeUserDetailsService.loadUserByUsername(username);
+                UserDetails userDetails;
+                if (username.equals("internal@system") || username.equals("internal-service")) {
+                    // 🛡️ Create a "fake" internal user without hitting database
+                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_SYSADMIN"));
+                    userDetails = new UserPrinciple("internal-service", "internal", "internal@system", "", authorities);
+                    log.info("Internal service token detected, skipping database lookup");
+                } else {
+                    // Normal user
+                    userDetails = customeUserDetailsService.loadUserByUsername(username);
+                }
 
                 if(jwtTokenProvider.checkTokenValidity(token,userDetails)){
                     UsernamePasswordAuthenticationToken authentication =

@@ -1,4 +1,4 @@
-package org.restaurantSerivce.user.User_Service.Exceptions;
+package org.restaurantSerivce.admin.Admin_Service.Exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -21,4 +21,5 @@ public class ResourceNotFoundException extends RuntimeException{
         this.resourceName = resourcename;
         this.fieldName = fieldname;
     }
+
 }

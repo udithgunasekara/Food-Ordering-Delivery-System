@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.restaurantSerivce.user.User_Service.DTO.Request.LoginRequestDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalUserResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.JWTResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.UserResponseDTO;
 import org.restaurantSerivce.user.User_Service.Model.Principle.UserPrinciple;
@@ -42,50 +43,53 @@ public class UserController {
 
     // ----------------- User Management ------------------
 
-    @PutMapping("/{userid}")
+    //update user method for user
+    @PutMapping("/update")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable String userid, @RequestBody UserRequestDTO request, @AuthenticationPrincipal UserPrinciple principal) {
-        if(!principal.getId().equals(userid) && !principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
-            log.warn("User with id {} not authorized to update user {}",principal.getId(),userid);
-            throw new AccessDeniedException("You do not have permission to update another users info");
-        }
-        return ResponseEntity.ok(userService.updateUser(userid, request));
+    public ResponseEntity<UserResponseDTO> updateUser(@RequestBody UserRequestDTO request, @AuthenticationPrincipal UserPrinciple principal) {
+        log.info("updating user detials for user : {} ", principal.getUsername());
+        return ResponseEntity.ok(userService.updateUser(principal.getId(), request));
     }
 
+    //get user method for user
+    @GetMapping("/getuser")
+    @PreAuthorize("isAuthenticated()") // refine later with ownership check
+    public ResponseEntity<UserResponseDTO> getUser(@AuthenticationPrincipal UserPrinciple principal) {
+        log.info("get user by userid method invoked with id {} ",principal.getId());
+        UserResponseDTO userdetails = userService.getUser(principal.getId());
+        log.info("user details recieved for user : {} and useranme as  {} ",principal.getId(),userdetails.getUsername());
+        return ResponseEntity.ok(userdetails);
+    }
+
+    //delete user method for admins and only admins
     @DeleteMapping("/{userid}")
     @PreAuthorize("hasRole('SYSADMIN')")
     public ResponseEntity<String> deleteUser(@PathVariable String userid) {
         return ResponseEntity.ok(userService.deleteUser(userid));
     }
 
-    @GetMapping("/{userid}")
-    @PreAuthorize("isAuthenticated()") // refine later with ownership check
-    public ResponseEntity<UserResponseDTO> getUser(@PathVariable String userid, @AuthenticationPrincipal UserPrinciple principal) {
-        if(!principal.getId().equals(userid) && !principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
-            log.warn("User with id {} not authorized to get user {}",principal.getId(),userid);
-            throw new AccessDeniedException("You do not have permission to get another users info");
-        }
-        return ResponseEntity.ok(userService.getUser(userid));
-    }
-
+    //get all users method for admins and only admins
     @GetMapping
     @PreAuthorize("hasRole('SYSADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @GetMapping("/by-roles")
+    //get users by user roles for admins and only admins
+    @GetMapping("/byroles")
     @PreAuthorize("hasRole('SYSADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getUsersByRole(@RequestParam List<String> roles) {
         return ResponseEntity.ok(userService.getUserByRole(roles));
     }
 
+    //set user roles
     @PostMapping("/{userid}/roles")
     @PreAuthorize("hasRole('SYSADMIN')")
     public ResponseEntity<UserResponseDTO> setUserRoles(@PathVariable String userid, @RequestBody List<String> roles) {
         return ResponseEntity.ok(userService.setUserRoles(userid, roles));
     }
 
+    //promote to system admin
     @PostMapping("/{userid}/promote-sysadmin")
     @PreAuthorize("hasRole('SYSADMIN')")
     public ResponseEntity<String> promoteToSysAdmin(@PathVariable String userid) {
@@ -93,10 +97,25 @@ public class UserController {
         return ResponseEntity.ok("User promoted to SYSADMIN");
     }
 
+
     @GetMapping("/roles")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<String>> getAllRoles() {
         return ResponseEntity.ok(userService.getAllRoles());
+    }
+
+//---------------------for internal communication---------------------------
+    @GetMapping("/internal/{email}")
+    @PreAuthorize("isAuthenticated()") // refine later with ownership check
+    public ResponseEntity<InternalUserResponseDTO> getUserForInternal(@PathVariable String email, @AuthenticationPrincipal UserPrinciple principal) {
+        log.info("get user by userid method invoked with id {}  for internal use",email);
+        if(!principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
+            log.warn("User with id {} not authorized to get user {}",principal.getId(),email);
+            throw new AccessDeniedException("You do not have permission to get another users info");
+        }
+        InternalUserResponseDTO userdetails = userService.getUserForInternal(email);
+        log.info("user details recieved for user : {} and useranme as  {} for internal ",email,userdetails.getFirstName() + userdetails.getLastName());
+        return ResponseEntity.ok(userdetails);
     }
 
 }
