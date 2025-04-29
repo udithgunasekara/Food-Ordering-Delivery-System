@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: food-delivery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: chathuratd007/payment-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: PAYMENT_MONGODB_URI
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: STRIPE_SECRET_KEY
+        - name: KAFKA_BROKER
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_BROKER
+        - name: PAYMENT_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: PAYMENT_API_KEY

@@ -1,12 +1,13 @@
 import Stripe from 'stripe';
 import Transaction from '../models/Transaction.js';
+import { STRIPE_SECRET_KEY } from '../config/config.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(STRIPE_SECRET_KEY);
 
 export const processPayment = async (amount, currency, paymentMethodId, orderId, customerEmail, customerPhone) => {
   try {
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount * 100, // Convert to cents
+      amount: amount, 
       currency,
       payment_method: paymentMethodId,
       confirm: true,

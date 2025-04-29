@@ -8,11 +8,13 @@ import lombok.extern.log4j.Log4j2;
 import org.restaurantSerivce.user.User_Service.Model.Principle.UserPrinciple;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.List;
 import java.util.function.Function;
 
 @Log4j2
@@ -31,13 +33,17 @@ public class JwtTokenProvider {
 
     public String generateToken(Authentication authentication){
         System.out.println("🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑" + authentication);
+        System.out.println("🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑" + authentication.getAuthorities());
         log.info("⚠️token generator initiated");
         String email = ((UserPrinciple) authentication.getPrincipal()).getEmail();
         Date now = new Date();
         Date tokenExpiration = new Date (now.getTime() + jwtExpirationMs);
+        List<String> roles = authentication.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority).toList();
         log.info("token generated for user : {} " , email);
         return Jwts.builder()
                 .setSubject(email)
+                .claim("roles", roles)
                 .setIssuedAt(now)
                 .setExpiration(tokenExpiration)
                 .signWith(getSignInKey())
@@ -83,4 +89,6 @@ public class JwtTokenProvider {
         final String username = getUsernameFromToken(token);
         return (username.equals(userdetails.getUsername()) && !isTokenExpired(token));
     }
+
+
 }

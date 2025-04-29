@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: food-delivery
+data:
+  KAFKA_BROKER: kafka-service:9092
