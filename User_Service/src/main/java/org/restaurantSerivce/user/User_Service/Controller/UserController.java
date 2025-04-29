@@ -4,7 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.restaurantSerivce.user.User_Service.DTO.Request.LoginRequestDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
-import org.restaurantSerivce.user.User_Service.DTO.Response.InternalUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalAdminUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalDeliveryPersonResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.JWTResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.UserResponseDTO;
 import org.restaurantSerivce.user.User_Service.Model.Principle.UserPrinciple;
@@ -15,7 +16,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -104,18 +104,25 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllRoles());
     }
 
+
 //---------------------for internal communication---------------------------
     @GetMapping("/internal/{email}")
     @PreAuthorize("isAuthenticated()") // refine later with ownership check
-    public ResponseEntity<InternalUserResponseDTO> getUserForInternal(@PathVariable String email, @AuthenticationPrincipal UserPrinciple principal) {
+    public ResponseEntity<InternalAdminUserResponseDTO> getUserForInternal(@PathVariable String email, @AuthenticationPrincipal UserPrinciple principal) {
         log.info("get user by userid method invoked with id {}  for internal use",email);
         if(!principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
             log.warn("User with id {} not authorized to get user {}",principal.getId(),email);
             throw new AccessDeniedException("You do not have permission to get another users info");
         }
-        InternalUserResponseDTO userdetails = userService.getUserForInternal(email);
+        InternalAdminUserResponseDTO userdetails = userService.getUserForInternal(email);
         log.info("user details recieved for user : {} and useranme as  {} for internal ",email,userdetails.getFirstName() + userdetails.getLastName());
         return ResponseEntity.ok(userdetails);
     }
 
+    @GetMapping("/internal/delivery")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<InternalDeliveryPersonResponseDTO>> getAllDevliveryRoles() {
+        log.info("get all devliy roles for internal comminication");
+        return ResponseEntity.ok(userService.getAllDeliveryPersons());
+    }
 }

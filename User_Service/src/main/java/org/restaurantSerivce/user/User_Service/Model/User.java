@@ -4,7 +4,6 @@ import lombok.*;
 import org.restaurantSerivce.user.User_Service.Model.Enums.RoleType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
@@ -32,6 +31,7 @@ public class User {
     private String state;
     private String zip;
     private String country;
+    private String coordinates;
     private List<RoleType> roles;
 
 }

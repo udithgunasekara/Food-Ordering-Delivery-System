@@ -1,7 +1,8 @@
 package org.restaurantSerivce.user.User_Service.Mapper;
 
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
-import org.restaurantSerivce.user.User_Service.DTO.Response.InternalUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalAdminUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalDeliveryPersonResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.UserResponseDTO;
 import org.restaurantSerivce.user.User_Service.Model.User;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class UserMapper {
                 .state(requestDTO.getState())
                 .zip(requestDTO.getZip())
                 .country(requestDTO.getCountry())
+                .coordinates(requestDTO.getCoordinates())
                 .build();
     }
 
@@ -38,16 +40,28 @@ public class UserMapper {
                 .zip(user.getZip())
                 .country(user.getCountry())
                 .roles(user.getRoles())
+                .coordinates(user.getCoordinates())
                 .build();
     }
 
-    public static InternalUserResponseDTO userToInternalUserDTO(User user){
-        return InternalUserResponseDTO.builder()
+    public static InternalAdminUserResponseDTO userToInternalUserDTO(User user){
+        return InternalAdminUserResponseDTO.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .phone(user.getPhone())
+                .build();
+    }
+
+    public static InternalDeliveryPersonResponseDTO userToInternalDeliveryPersonDTO(User user){
+        return InternalDeliveryPersonResponseDTO.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .phone(user.getPhone())
+                .coordinates(user.getCoordinates())
                 .build();
     }
 }

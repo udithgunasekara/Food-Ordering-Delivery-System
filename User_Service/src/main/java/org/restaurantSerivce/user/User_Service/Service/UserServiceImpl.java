@@ -3,7 +3,8 @@ package org.restaurantSerivce.user.User_Service.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
-import org.restaurantSerivce.user.User_Service.DTO.Response.InternalUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalAdminUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalDeliveryPersonResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.UserResponseDTO;
 import org.restaurantSerivce.user.User_Service.Exceptions.ResourceAlreadyExistException;
 import org.restaurantSerivce.user.User_Service.Exceptions.ResourceNotFoundException;
@@ -159,6 +160,24 @@ public class UserServiceImpl implements IUserService {
         return UserMapper.userToUserResponseDTO(savedUser);
     }
 
+    public UserResponseDTO setOneUserRoles(String userid, String role) {
+        User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
+        RoleType roleType;
+        try {
+            role = role.replace("\"", "").trim();
+            roleType = RoleType.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid role received: " + role);
+        }
+        if (!user.getRoles().contains(roleType)) {
+            log.info(" adding role {} to user {}", roleType,user.getUsername());
+            user.getRoles().add(roleType);
+        }
+
+        User savedUser = userRepository.save(user);
+        return UserMapper.userToUserResponseDTO(savedUser);
+    }
+
     @Override
     public void setUserToSysAdmin(String userid) {
         User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
@@ -175,8 +194,16 @@ public class UserServiceImpl implements IUserService {
     //---------------internal service operations ----------------
 
 
-    public InternalUserResponseDTO getUserForInternal(String useremail) {
+    public InternalAdminUserResponseDTO getUserForInternal(String useremail) {
         User user = userRepository.findByEmail(useremail);
         return UserMapper.userToInternalUserDTO(user);
+    }
+
+    @Override
+    public List<InternalDeliveryPersonResponseDTO> getAllDeliveryPersons() {
+        List<User> deliveryAgents = userRepository.findByRoles(RoleType.ROLE_DELIVERY_AGENT);
+        return deliveryAgents.stream()
+                .map(UserMapper::userToInternalDeliveryPersonDTO)
+                .collect(Collectors.toList());
     }
 }
