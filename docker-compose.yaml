@@ -1,63 +1,280 @@
+# services:
+#   payment-service:
+#     build: ./payment-service
+#     ports:
+#       - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+#     environment:
+#       - PORT=${PAYMENT_SERVICE_PORT}
+#       - MONGODB_URI=${MONGODB_URI}
+#       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+#       - KAFKA_BROKER=${KAFKA_BROKER}
+#       - API_KEY=${API_KEY}
+#     depends_on:
+#       - kafka
+#     networks:
+#       - food-delivery-network
+
+#   notification-service:
+#     build: ./notification-service
+#     ports:
+#       - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+#     environment:
+#       - PORT=${NOTIFICATION_SERVICE_PORT}
+#       - MONGO_URI=${MONGO_URI} 
+#       - KAFKA_BROKER=${KAFKA_BROKER}
+#       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+#       - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
+#       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+#       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+#       - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+#       - API_KEY=${API_KEY}
+#     depends_on:
+#       - kafka
+#     restart: on-failure
+#     networks:
+#       - food-delivery-network
+
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:latest
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+#       ZOOKEEPER_TICK_TIME: 2000
+#     ports:
+#       - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+#     networks:
+#       - food-delivery-network
+
+#   kafka:
+#     image: confluentinc/cp-kafka:latest
+#     depends_on:
+#       - zookeeper
+#     ports:
+#       - "${KAFKA_PORT}:${KAFKA_PORT}"
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_CREATE_TOPICS: "order-placed:1:1,delivery-assigned:1:1,payment-events:1:1"
+#     networks:
+#       - food-delivery-network
+
+#   service-registry:
+#     build: ./service_registry
+#     ports:
+#       - "${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}"
+#     environment:
+#       - SERVER_PORT=${SERVICE_REGISTRY_PORT}
+#       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka
+#     networks:
+#       - food-delivery-network
+#     restart: on-failure
+
+#   api-gateway:
+#     build: ./Api Gateway
+#     ports:
+#       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+#     environment:
+#       - SERVER_PORT=${API_GATEWAY_PORT}
+#       - EUREKA_CLIENT_SERVICE-URL-DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka
+#       - SPRING_CLOUD_GATEWAY_ROUTES_RESTAURANT-SERVICE_URI=http://restaurant-service:${RESTAURANT_SERVICE_PORT}
+#       - SPRING_CLOUD_GATEWAY_ROUTES_PAYMENT-SERVICE_URI=http://payment-service:${PAYMENT_SERVICE_PORT}
+#       - SPRING_CLOUD_GATEWAY_ROUTES_NOTIFICATION-SERVICE_URI=http://notification-service:${NOTIFICATION_SERVICE_PORT}
+#     depends_on:
+#       - service-registry
+#       - kafka
+#     networks:
+#       - food-delivery-network
+
+#   restaurant-service:
+#     build: ./Restaurant Service
+#     ports:
+#       - "${RESTAURANT_SERVICE_PORT}:${RESTAURANT_SERVICE_PORT}"
+#     environment:
+#       - SERVER_PORT=${RESTAURANT_SERVICE_PORT}
+#       - EUREKA_CLIENT_SERVICE-URL-DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka
+#       - KAFKA_BROKER=${KAFKA_BROKER}
+#     depends_on:
+#       - service-registry
+#       - kafka
+#       - zookeeper
+#     networks:
+#       - food-delivery-network
+
+# networks:
+#   food-delivery-network:
+#     driver: bridge
+
+version: "3.8"
+
 services:
-  payment-service:
-    build: ./payment-service
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:latest
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   ports:
+  #     - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+  #   networks:
+  #     - food-delivery-network
+
+  # kafka:
+  #   image: confluentinc/cp-kafka:latest
+  #   depends_on:
+  #     - zookeeper
+  #   ports:
+  #     - "${KAFKA_PORT}:${KAFKA_PORT}"
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #     KAFKA_CREATE_TOPICS: "order-placed:1:1,delivery-assigned:1:1,payment-events:1:1"
+  #   networks:
+  #     - food-delivery-network
+
+  service-registry:
+    build: ./service_registry
+    container_name: service-registry
     ports:
-      - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+      - "${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}"
     environment:
-      - PORT=${PAYMENT_SERVICE_PORT}
-      - MONGODB_URI=${MONGODB_URI}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - KAFKA_BROKER=${KAFKA_BROKER}
-      - API_KEY=${API_KEY}
-    depends_on:
-      - kafka
+      - SERVER_PORT=${SERVICE_REGISTRY_PORT}
+      - EUREKA_INSTANCE_HOSTNAME=service-registry
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
     networks:
       - food-delivery-network
-
-  notification-service:
-    build: ./notification-service
-    ports:
-      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
-    environment:
-      - PORT=${NOTIFICATION_SERVICE_PORT}
-      - MONGO_URI=${MONGO_URI} 
-      - KAFKA_BROKER=${KAFKA_BROKER}
-      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-      - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-      - API_KEY=${API_KEY}
-    depends_on:
-      - kafka
     restart: on-failure
-    networks:
-      - food-delivery-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SERVICE_REGISTRY_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
+  # payment-service:
+  #   build: ./payment-service
+  #   container_name: payment-service
+  #   ports:
+  #     - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+  #   environment:
+  #     - SERVER_PORT=${PAYMENT_SERVICE_PORT}
+  #     - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+  #     - MONGODB_URI=${MONGODB_URI}
+  #     - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+  #     # - KAFKA_BROKER=${KAFKA_BROKER}
+  #     - API_KEY=${API_KEY}
+  #   depends_on:
+  #     # kafka:
+  #     #   condition: service_started
+  #     service-registry:
+  #       condition: service_healthy
+  #   networks:
+  #     - food-delivery-network
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    environment:
-      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
-      ZOOKEEPER_TICK_TIME: 2000
+  # notification-service:
+  #   build: ./notification-service
+  #   container_name: notification-service
+  #   ports:
+  #     - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+  #   environment:
+  #     - SERVER_PORT=${NOTIFICATION_SERVICE_PORT}
+  #     - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+  #     - MONGO_URI=${MONGO_URI}
+  #     # - KAFKA_BROKER=${KAFKA_BROKER}
+  #     - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+  #     - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
+  #     - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+  #     - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+  #     - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+  #     - API_KEY=${API_KEY}
+  #   depends_on:
+  #     # kafka:
+  #     #   condition: service_started
+  #     service-registry:
+  #       condition: service_healthy
+  #   restart: on-failure
+  #   networks:
+  #     - food-delivery-network
+
+  api-gateway:
+    build: ./Api Gateway
+    container_name: api-gateway
     ports:
-      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
-    networks:
-      - food-delivery-network
-
-  kafka:
-    image: confluentinc/cp-kafka:latest
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    environment:
+      - SERVER_PORT=${API_GATEWAY_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - SPRING_CLOUD_GATEWAY_ROUTES_RESTAURANT-SERVICE_URI=http://restaurant-service:${RESTAURANT_SERVICE_PORT}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - SPRING_CLOUD_GATEWAY_ROUTES_PAYMENT-SERVICE_URI=http://payment-service:${PAYMENT_SERVICE_PORT}
+      - SPRING_CLOUD_GATEWAY_ROUTES_NOTIFICATION-SERVICE_URI=http://notification-service:${NOTIFICATION_SERVICE_PORT}
+      - SPRING_CLOUD_GATEWAY_ROUTES_USER-SERVICE_URI=http://user-service:${USER_SERVICE_PORT}
     depends_on:
-      - zookeeper
+      service-registry:
+        condition: service_healthy
+      # kafka:
+      #   condition: service_started
+    networks:
+      - food-delivery-network
+  
+  user-service:
+    build: ./User_Service
+    container_name: user-service
     ports:
-      - "${KAFKA_PORT}:${KAFKA_PORT}"
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      # Define all required topics
-      KAFKA_CREATE_TOPICS: "order-placed:1:1,delivery-assigned:1:1,payment-events:1:1"
+      - SERVER_PORT=${USER_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      # - KAFKA_BROKER=${KAFKA_BROKER}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+    depends_on:
+      # kafka:
+      #   condition: service_started
+      service-registry:
+        condition: service_healthy
+      # zookeeper:
+      #   condition: service_started
+    networks:
+      - food-delivery-network
+
+  admin-service:
+    build: ./Admin_Service
+    container_name: admin-service
+    ports:
+      - "${ADMIN_SERVICE_PORT}:${ADMIN_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${ADMIN_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      # - KAFKA_BROKER=${KAFKA_BROKER}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+    depends_on:
+      # kafka:
+      #   condition: service_started
+      service-registry:
+        condition: service_healthy
+      # zookeeper:
+      #   condition: service_started
+    networks:
+      - food-delivery-network
+
+  restaurant-service:
+    build: ./Restaurant Service
+    container_name: restaurant-service
+    ports:
+      - "${RESTAURANT_SERVICE_PORT}:${RESTAURANT_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${RESTAURANT_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      # - KAFKA_BROKER=${KAFKA_BROKER}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      
+    depends_on:
+      # kafka:
+      #   condition: service_started
+      service-registry:
+        condition: service_healthy
+      # zookeeper:
+      #   condition: service_started
     networks:
       - food-delivery-network
 
