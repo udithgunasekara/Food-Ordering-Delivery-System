@@ -1,7 +1,8 @@
 package org.restaurantSerivce.user.User_Service.Service.base;
 
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
-import org.restaurantSerivce.user.User_Service.DTO.Response.InternalUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalAdminUserResponseDTO;
+import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalDeliveryPersonResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.UserResponseDTO;
 
 import java.util.List;
@@ -16,5 +17,6 @@ public interface IUserService {
     public UserResponseDTO setUserRoles(String userid, List<String> roles);
     public void setUserToSysAdmin(String userid);
     public List<String> getAllRoles();
-    public InternalUserResponseDTO getUserForInternal(String userid);
+    public InternalAdminUserResponseDTO getUserForInternal(String userid);
+    public List<InternalDeliveryPersonResponseDTO> getAllDeliveryPersons();
 }
