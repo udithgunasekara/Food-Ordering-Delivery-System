@@ -138,6 +138,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
+		<finalName>admin_service</finalName>
 	</build>
 
 </project>

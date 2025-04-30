@@ -13,11 +13,16 @@ public class GatewayRoutesConfig {
         return builder.routes()
 
                 .route("restaurant-menu", r -> r.path("/menu/**")
-                        .uri("lb://RESTAURANT-SERVICE"))
+                        .uri("lb://restaurant-service"))
 
 //               This is sample code for do the routes
 //                .route("restaurant-category", r -> r.path("/category/**")
 //                        .uri("lb://RESTAURANT-SERVICE"))
+
+                .route("admin-service", r -> r.path("/api/admin/**")
+                        .uri("lb://ADMIN-SERVICE"))
+                .route("user-service", r -> r.path("/api/users/**")
+                        .uri("lb://user-service"))
 
                 .build();
     }
