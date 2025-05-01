@@ -7,7 +7,7 @@ const stripe = new Stripe(STRIPE_SECRET_KEY);
 export const processPayment = async (amount, currency, paymentMethodId, orderId, customerEmail, customerPhone) => {
   try {
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, 
+      amount: amount * 100, // Stripe requires the amount in cents
       currency,
       payment_method: paymentMethodId,
       confirm: true,
