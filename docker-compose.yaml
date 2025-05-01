@@ -1,41 +1,7 @@
 # services:
-#   payment-service:
-#     build: ./payment-service
-#     ports:
-#       - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
-#     environment:
-#       - PORT=${PAYMENT_SERVICE_PORT}
-#       - MONGODB_URI=${MONGODB_URI}
-#       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-#       - KAFKA_BROKER=${KAFKA_BROKER}
-#       - API_KEY=${API_KEY}
-#     depends_on:
-#       - kafka
-#     networks:
-#       - food-delivery-network
-
-#   notification-service:
-#     build: ./notification-service
-#     ports:
-#       - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
-#     environment:
-#       - PORT=${NOTIFICATION_SERVICE_PORT}
-#       - MONGO_URI=${MONGO_URI} 
-#       - KAFKA_BROKER=${KAFKA_BROKER}
-#       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-#       - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
-#       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-#       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-#       - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-#       - API_KEY=${API_KEY}
-#     depends_on:
-#       - kafka
-#     restart: on-failure
-#     networks:
-#       - food-delivery-network
-
 #   zookeeper:
 #     image: confluentinc/cp-zookeeper:latest
+#     container_name: zookeeper
 #     environment:
 #       ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
 #       ZOOKEEPER_TICK_TIME: 2000
@@ -43,95 +9,312 @@
 #       - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
 #     networks:
 #       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "bash", "-c", "echo 'ruok' | nc -w 2 localhost ${ZOOKEEPER_PORT}"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.5'
+#           memory: 512m
+#         reservations:
+#           cpus: '0.25'
+#           memory: 256m
 
 #   kafka:
 #     image: confluentinc/cp-kafka:latest
+#     container_name: kafka
 #     depends_on:
-#       - zookeeper
+#       zookeeper:
+#         condition: service_healthy
 #     ports:
-#       - "${KAFKA_PORT}:${KAFKA_PORT}"
+#       - "${KAFKA_PORT}:${KAFKA_PORT}"  # Internal: 9092
+#       - "29092:29092"                 # External: 29092
 #     environment:
 #       KAFKA_BROKER_ID: 1
 #       KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT},PLAINTEXT_HOST://localhost:29092
 #       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-#       KAFKA_CREATE_TOPICS: "order-placed:1:1,delivery-assigned:1:1,payment-events:1:1"
-#     networks:
-#       - food-delivery-network
-
-#   service-registry:
-#     build: ./service_registry
-#     ports:
-#       - "${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}"
-#     environment:
-#       - SERVER_PORT=${SERVICE_REGISTRY_PORT}
-#       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka
+#       KAFKA_CREATE_TOPICS: "order-placed:3:1,delivery-assigned:3:1,payment-events:3:1"
+#       KAFKA_HEAP_OPTS: "-Xmx1g -Xms1g"
+#       KAFKA_COMPRESSION_TYPE: gzip
+#       KAFKA_LOG_RETENTION_HOURS: 24
+#       KAFKA_LOG_RETENTION_BYTES: 1073741824
+#     healthcheck:
+#       test: ["CMD", "nc", "-zv", "localhost", "${KAFKA_PORT}"]
+#       interval: 10s
+#       timeout: 10s
+#       retries: 10
+#       start_period: 30s
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '1.0'
+#           memory: 2g
+#         reservations:
+#           cpus: '0.5'
+#           memory: 1g
 #     networks:
 #       - food-delivery-network
 #     restart: on-failure
 
+#   service-registry:
+#     build: ./service_registry
+#     container_name: service-registry
+#     ports:
+#       - "${SERVICE_REGISTRY_PORT}:${SERVICE_REGISTRY_PORT}"
+#     environment:
+#       - SERVER_PORT=${SERVICE_REGISTRY_PORT}
+#       - EUREKA_INSTANCE_HOSTNAME=service-registry
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#     networks:
+#       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${SERVICE_REGISTRY_PORT}/actuator/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
+
+#   payment-service:
+#     build: ./payment-service
+#     container_name: payment-service
+#     ports:
+#       - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+#     environment:
+#       - SERVER_PORT=${PAYMENT_SERVICE_PORT}
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#       - MONGODB_URI=${MONGODB_URI}
+#       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+#       - KAFKA_BROKER=kafka:9092
+#       - API_KEY=${API_KEY}
+#       - KAFKAJS_NO_PARTITIONER_WARNING=1
+#     command: ["sh", "-c", "sleep 30 && node src/app.js"]
+#     depends_on:
+#       kafka:
+#         condition: service_healthy
+#       service-registry:
+#         condition: service_healthy
+#     networks:
+#       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${PAYMENT_SERVICE_PORT}/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
+
+#   notification-service:
+#     build: ./notification-service
+#     container_name: notification-service
+#     ports:
+#       - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+#     environment:
+#       - SERVER_PORT=${NOTIFICATION_SERVICE_PORT}
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#       - MONGO_URI=${MONGO_URI}
+#       - KAFKA_BROKER=kafka:9092
+#       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+#       - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
+#       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+#       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+#       - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+#       - API_KEY=${API_KEY}
+#     depends_on:
+#       kafka:
+#         condition: service_healthy
+#       service-registry:
+#         condition: service_healthy
+#     networks:
+#       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${NOTIFICATION_SERVICE_PORT}/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
+
 #   api-gateway:
 #     build: ./Api Gateway
+#     container_name: api-gateway
 #     ports:
 #       - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
 #     environment:
 #       - SERVER_PORT=${API_GATEWAY_PORT}
-#       - EUREKA_CLIENT_SERVICE-URL-DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka
-#       - SPRING_CLOUD_GATEWAY_ROUTES_RESTAURANT-SERVICE_URI=http://restaurant-service:${RESTAURANT_SERVICE_PORT}
-#       - SPRING_CLOUD_GATEWAY_ROUTES_PAYMENT-SERVICE_URI=http://payment-service:${PAYMENT_SERVICE_PORT}
-#       - SPRING_CLOUD_GATEWAY_ROUTES_NOTIFICATION-SERVICE_URI=http://notification-service:${NOTIFICATION_SERVICE_PORT}
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#       - SPRING_CLOUD_GATEWAY_ROUTES[0].ID=restaurant-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[0].URI=lb://restaurant-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[0].PREDICATES[0]=Path=/api/restaurants/**
+#       - SPRING_CLOUD_GATEWAY_ROUTES[1].ID=payment-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[1].URI=lb://payment-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[1].PREDICATES[0]=Path=/api/payments/**
+#       - SPRING_CLOUD_GATEWAY_ROUTES[2].ID=notification-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[2].URI=lb://notification-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[2].PREDICATES[0]=Path=/api/notifications/**
+#       - SPRING_CLOUD_GATEWAY_ROUTES[3].ID=user-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[3].URI=lb://user-service
+#       - SPRING_CLOUD_GATEWAY_ROUTES[3].PREDICATES[0]=Path=/api/users/**
 #     depends_on:
-#       - service-registry
-#       - kafka
+#       service-registry:
+#         condition: service_healthy
 #     networks:
 #       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${API_GATEWAY_PORT}/actuator/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
+
+#   user-service:
+#     build: ./User_Service
+#     container_name: user-service
+#     ports:
+#       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+#     environment:
+#       - SERVER_PORT=${USER_SERVICE_PORT}
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#       - KAFKA_BROKER=kafka:9092
+#     depends_on:
+#       kafka:
+#         condition: service_healthy
+#       service-registry:
+#         condition: service_healthy
+#       zookeeper:
+#         condition: service_healthy
+#     networks:
+#       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${USER_SERVICE_PORT}/actuator/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
+
+#   admin-service:
+#     build: ./Admin_Service
+#     container_name: admin-service
+#     ports:
+#       - "${ADMIN_SERVICE_PORT}:${ADMIN_SERVICE_PORT}"
+#     environment:
+#       - SERVER_PORT=${ADMIN_SERVICE_PORT}
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#       - KAFKA_BROKER=kafka:9092
+#     depends_on:
+#       kafka:
+#         condition: service_healthy
+#       service-registry:
+#         condition: service_healthy
+#       zookeeper:
+#         condition: service_healthy
+#     networks:
+#       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${ADMIN_SERVICE_PORT}/actuator/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
 
 #   restaurant-service:
 #     build: ./Restaurant Service
+#     container_name: restaurant-service
 #     ports:
 #       - "${RESTAURANT_SERVICE_PORT}:${RESTAURANT_SERVICE_PORT}"
 #     environment:
 #       - SERVER_PORT=${RESTAURANT_SERVICE_PORT}
-#       - EUREKA_CLIENT_SERVICE-URL-DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka
-#       - KAFKA_BROKER=${KAFKA_BROKER}
+#       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+#       - KAFKA_BROKER=kafka:9092
 #     depends_on:
-#       - service-registry
-#       - kafka
-#       - zookeeper
+#       kafka:
+#         condition: service_healthy
+#       service-registry:
+#         condition: service_healthy
+#       zookeeper:
+#         condition: service_healthy
 #     networks:
 #       - food-delivery-network
+#     restart: on-failure
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:${RESTAURANT_SERVICE_PORT}/actuator/health"]
+#       interval: 10s
+#       timeout: 2s
+#       retries: 5
 
 # networks:
 #   food-delivery-network:
 #     driver: bridge
 
-version: "3.8"
+
+version: '3.8'
 
 services:
-  # zookeeper:
-  #   image: confluentinc/cp-zookeeper:latest
-  #   environment:
-  #     ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
-  #     ZOOKEEPER_TICK_TIME: 2000
-  #   ports:
-  #     - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
-  #   networks:
-  #     - food-delivery-network
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT}:${ZOOKEEPER_PORT}"
+    networks:
+      - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'ruok' | nc -w 2 localhost ${ZOOKEEPER_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512m
+        reservations:
+          cpus: '0.25'
+          memory: 256m
 
-  # kafka:
-  #   image: confluentinc/cp-kafka:latest
-  #   depends_on:
-  #     - zookeeper
-  #   ports:
-  #     - "${KAFKA_PORT}:${KAFKA_PORT}"
-  #   environment:
-  #     KAFKA_BROKER_ID: 1
-  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT}
-  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-  #     KAFKA_CREATE_TOPICS: "order-placed:1:1,delivery-assigned:1:1,payment-events:1:1"
-  #   networks:
-  #     - food-delivery-network
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "${KAFKA_PORT}:${KAFKA_PORT}"  # Internal: 9092
+      - "29092:29092"                 # External: 29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_PORT},PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "order-placed:3:1,delivery-assigned:3:1,payment-events:3:1"
+      KAFKA_HEAP_OPTS: "-Xmx1g -Xms1g"
+      KAFKA_COMPRESSION_TYPE: gzip
+      KAFKA_LOG_RETENTION_HOURS: 24
+      KAFKA_LOG_RETENTION_BYTES: 1073741824
+    healthcheck:
+      test: ["CMD", "nc", "-zv", "localhost", "${KAFKA_PORT}"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2g
+        reservations:
+          cpus: '0.5'
+          memory: 1g
+    networks:
+      - food-delivery-network
+    restart: on-failure
 
   service-registry:
     build: ./service_registry
@@ -151,50 +334,64 @@ services:
       timeout: 2s
       retries: 5
 
-  # payment-service:
-  #   build: ./payment-service
-  #   container_name: payment-service
-  #   ports:
-  #     - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
-  #   environment:
-  #     - SERVER_PORT=${PAYMENT_SERVICE_PORT}
-  #     - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-  #     - MONGODB_URI=${MONGODB_URI}
-  #     - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-  #     # - KAFKA_BROKER=${KAFKA_BROKER}
-  #     - API_KEY=${API_KEY}
-  #   depends_on:
-  #     # kafka:
-  #     #   condition: service_started
-  #     service-registry:
-  #       condition: service_healthy
-  #   networks:
-  #     - food-delivery-network
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${PAYMENT_SERVICE_PORT}
+      - EUREKA_HOST=service-registry
+      - SERVICE_REGISTRY_PORT=8761
+      - MONGODB_URI=${MONGODB_URI}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - KAFKA_BROKER=kafka:9092
+      - API_KEY=${API_KEY}
+      - KAFKAJS_NO_PARTITIONER_WARNING=1
+    command: ["sh", "-c", "sleep 30 && node src/app.js"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${PAYMENT_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
-  # notification-service:
-  #   build: ./notification-service
-  #   container_name: notification-service
-  #   ports:
-  #     - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
-  #   environment:
-  #     - SERVER_PORT=${NOTIFICATION_SERVICE_PORT}
-  #     - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-  #     - MONGO_URI=${MONGO_URI}
-  #     # - KAFKA_BROKER=${KAFKA_BROKER}
-  #     - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-  #     - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
-  #     - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-  #     - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-  #     - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-  #     - API_KEY=${API_KEY}
-  #   depends_on:
-  #     # kafka:
-  #     #   condition: service_started
-  #     service-registry:
-  #       condition: service_healthy
-  #   restart: on-failure
-  #   networks:
-  #     - food-delivery-network
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${NOTIFICATION_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - MONGO_URI=${MONGO_URI}
+      - KAFKA_BROKER=kafka:9092
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - API_KEY=${API_KEY}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    networks:
+      - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${NOTIFICATION_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
   api-gateway:
     build: ./Api Gateway
@@ -204,19 +401,30 @@ services:
     environment:
       - SERVER_PORT=${API_GATEWAY_PORT}
       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      - SPRING_CLOUD_GATEWAY_ROUTES_RESTAURANT-SERVICE_URI=http://restaurant-service:${RESTAURANT_SERVICE_PORT}
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      - SPRING_CLOUD_GATEWAY_ROUTES_PAYMENT-SERVICE_URI=http://payment-service:${PAYMENT_SERVICE_PORT}
-      - SPRING_CLOUD_GATEWAY_ROUTES_NOTIFICATION-SERVICE_URI=http://notification-service:${NOTIFICATION_SERVICE_PORT}
-      - SPRING_CLOUD_GATEWAY_ROUTES_USER-SERVICE_URI=http://user-service:${USER_SERVICE_PORT}
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].ID=restaurant-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].URI=lb://restaurant-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[0].PREDICATES[0]=Path=/api/restaurants/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].ID=payment-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].URI=lb://payment-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[1].PREDICATES[0]=Path=/api/payments/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].ID=notification-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].URI=lb://notification-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[2].PREDICATES[0]=Path=/api/notifications/**
+      - SPRING_CLOUD_GATEWAY_ROUTES[3].ID=user-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[3].URI=lb://user-service
+      - SPRING_CLOUD_GATEWAY_ROUTES[3].PREDICATES[0]=Path=/api/users/**
     depends_on:
       service-registry:
         condition: service_healthy
-      # kafka:
-      #   condition: service_started
     networks:
       - food-delivery-network
-  
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${API_GATEWAY_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
   user-service:
     build: ./User_Service
     container_name: user-service
@@ -225,17 +433,22 @@ services:
     environment:
       - SERVER_PORT=${USER_SERVICE_PORT}
       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      # - KAFKA_BROKER=${KAFKA_BROKER}
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - KAFKA_BROKER=kafka:9092
     depends_on:
-      # kafka:
-      #   condition: service_started
+      kafka:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
-      # zookeeper:
-      #   condition: service_started
+      zookeeper:
+        condition: service_healthy
     networks:
       - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${USER_SERVICE_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
   admin-service:
     build: ./Admin_Service
@@ -245,17 +458,22 @@ services:
     environment:
       - SERVER_PORT=${ADMIN_SERVICE_PORT}
       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      # - KAFKA_BROKER=${KAFKA_BROKER}
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - KAFKA_BROKER=kafka:9092
     depends_on:
-      # kafka:
-      #   condition: service_started
+      kafka:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
-      # zookeeper:
-      #   condition: service_started
+      zookeeper:
+        condition: service_healthy
     networks:
       - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${ADMIN_SERVICE_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
   restaurant-service:
     build: ./Restaurant Service
@@ -265,18 +483,22 @@ services:
     environment:
       - SERVER_PORT=${RESTAURANT_SERVICE_PORT}
       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      # - KAFKA_BROKER=${KAFKA_BROKER}
-      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      
+      - KAFKA_BROKER=kafka:9092
     depends_on:
-      # kafka:
-      #   condition: service_started
+      kafka:
+        condition: service_healthy
       service-registry:
         condition: service_healthy
-      # zookeeper:
-      #   condition: service_started
+      zookeeper:
+        condition: service_healthy
     networks:
       - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${RESTAURANT_SERVICE_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
 networks:
   food-delivery-network:
