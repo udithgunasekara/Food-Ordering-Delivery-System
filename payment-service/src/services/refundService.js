@@ -15,7 +15,7 @@ export const processRefund = async (paymentIntentId, orderId) => {
       orderId,
       refundId: refund.id,
       paymentIntentId,
-      amount: refund.amount / 100, // Convert from cents
+      amount: refund.amount ,
       currency: refund.currency,
       status: refund.status,
       type: 'refund',
