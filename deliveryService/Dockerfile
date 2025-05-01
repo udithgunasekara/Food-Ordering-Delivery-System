@@ -8,6 +8,7 @@ FROM maven:3.9.6-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
+
 # Copy Maven files and source code
 COPY pom.xml ./
 COPY src ./src
