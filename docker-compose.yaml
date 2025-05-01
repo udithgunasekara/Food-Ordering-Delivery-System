@@ -20,7 +20,7 @@
 #       - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
 #     environment:
 #       - PORT=${NOTIFICATION_SERVICE_PORT}
-#       - MONGO_URI=${MONGO_URI} 
+#       - MONGO_URI=${MONGO_URI}
 #       - KAFKA_BROKER=${KAFKA_BROKER}
 #       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
 #       - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
@@ -216,7 +216,7 @@ services:
       #   condition: service_started
     networks:
       - food-delivery-network
-  
+
   user-service:
     build: ./User_Service
     container_name: user-service
@@ -267,7 +267,7 @@ services:
       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
       # - KAFKA_BROKER=${KAFKA_BROKER}
       - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
-      
+
     depends_on:
       # kafka:
       #   condition: service_started
@@ -277,6 +277,47 @@ services:
       #   condition: service_started
     networks:
       - food-delivery-network
+
+  delivery-service:
+    build: ./deliveryService
+    container_name: delivery-service
+    ports:
+      - "${DELIVERY_SERVICE_PORT}:${DELIVERY_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${DELIVERY_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      # - KAFKA_BROKER=${KAFKA_BROKER}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+    depends_on:
+      # kafka:
+      #   condition: service_started
+      service-registry:
+        condition: service_healthy
+      # zookeeper:
+      #   condition: service_started
+    networks:
+      - food-delivery-network
+
+  order-service:
+    build: ./orderService
+    container_name: order-service
+    ports:
+      - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${ORDER_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      # - KAFKA_BROKER=${KAFKA_BROKER}
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+    depends_on:
+      # kafka:
+      #   condition: service_started
+      service-registry:
+        condition: service_healthy
+      # zookeeper:
+      #   condition: service_started
+    networks:
+      - food-delivery-network
+
 
 networks:
   food-delivery-network:

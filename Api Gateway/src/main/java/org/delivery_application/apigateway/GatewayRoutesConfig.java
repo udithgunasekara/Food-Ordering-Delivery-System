@@ -23,6 +23,10 @@ public class GatewayRoutesConfig {
                         .uri("lb://ADMIN-SERVICE"))
                 .route("user-service", r -> r.path("/api/users/**")
                         .uri("lb://user-service"))
+                .route("order-service", r -> r.path("/api/order/**")
+                        .uri("lb://order-service"))
+                .route("delivery-service", r -> r.path("/api/delivery/**")
+                        .uri("lb://delivery-service"))
 
                 .build();
     }
