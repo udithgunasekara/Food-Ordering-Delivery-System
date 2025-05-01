@@ -491,7 +491,7 @@ services:
     depends_on:
        kafka:
          condition: service_healthy
-      service-registry:
+       service-registry:
         condition: service_healthy
        zookeeper:
          condition: service_healthy
