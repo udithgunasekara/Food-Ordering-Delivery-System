@@ -22,6 +22,8 @@ public class RestaurantRequestResponseDTO {
     private String ownerEmail;
     private String ownerFullName;
     private String ownerContact;
+    private String latitude;
+    private String longitude;
     private RestaurantStatus status;
     private LocalDateTime requestedAt;
     private LocalDateTime modifiedAt;

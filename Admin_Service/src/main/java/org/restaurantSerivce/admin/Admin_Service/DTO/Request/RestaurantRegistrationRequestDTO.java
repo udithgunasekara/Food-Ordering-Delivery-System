@@ -15,4 +15,6 @@ public class RestaurantRegistrationRequestDTO {
     private String contactPhone;
     private String address;
     private String ownerEmail;
+    private String latitude;
+    private String longitude;
 }
