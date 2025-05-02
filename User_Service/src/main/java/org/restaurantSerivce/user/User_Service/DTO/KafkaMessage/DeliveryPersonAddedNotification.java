@@ -15,5 +15,6 @@ public class DeliveryPersonAddedNotification {
     private String firstName;
     private String lastName;
     private String phone;
-    private String coordinates;
+    private String latitude;
+    private String longitude;
 }
