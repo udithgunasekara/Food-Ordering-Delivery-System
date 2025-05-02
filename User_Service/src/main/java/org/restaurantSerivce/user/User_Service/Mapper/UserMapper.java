@@ -22,7 +22,8 @@ public class UserMapper {
                 .state(requestDTO.getState())
                 .zip(requestDTO.getZip())
                 .country(requestDTO.getCountry())
-                .coordinates(requestDTO.getCoordinates())
+                .latitude(requestDTO.getLatitude())
+                .longitude(requestDTO.getLongitude())
                 .build();
     }
 
@@ -40,7 +41,8 @@ public class UserMapper {
                 .zip(user.getZip())
                 .country(user.getCountry())
                 .roles(user.getRoles())
-                .coordinates(user.getCoordinates())
+                .latitude(user.getLatitude())
+                .longitude(user.getLongitude())
                 .build();
     }
 
@@ -61,7 +63,8 @@ public class UserMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .phone(user.getPhone())
-                .coordinates(user.getCoordinates())
+                .latitude(user.getLatitude())
+                .longitude(user.getLongitude())
                 .build();
     }
 }

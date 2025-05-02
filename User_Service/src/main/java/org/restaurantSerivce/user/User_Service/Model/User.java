@@ -31,7 +31,8 @@ public class User {
     private String state;
     private String zip;
     private String country;
-    private String coordinates;
+    private String latitude;
+    private String longitude;
     private List<RoleType> roles;
 
 }

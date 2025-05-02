@@ -1,13 +1,15 @@
-package org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse;
+package org.restaurantSerivce.user.User_Service.DTO.KafkaMessage;
 
 import lombok.*;
+import org.restaurantSerivce.user.User_Service.Model.Enums.RoleType;
 
-@Getter
-@Setter
+import java.util.List;
+
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class InternalDeliveryPersonResponseDTO {
+public class DeliveryPersonAddedNotification {
     private String id;
     private String email;
     private String firstName;

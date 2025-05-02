@@ -76,10 +76,33 @@ public class AdminController {
         return ResponseEntity.ok(responseMessage);
     }
 
+    @PutMapping("approve/{restaurantId}")
+    public ResponseEntity<String> approveRestaurant(
+            @PathVariable String restaurantId
+    ) {
+        log.info("approve restaurant " + restaurantId);
+        String responseMessage = restaurantRegistrationServiceImpl.approveRestaurantStatus(restaurantId);
+        return ResponseEntity.ok(responseMessage);
+    }
+
+    @PutMapping("reject/{restaurantId}")
+    public ResponseEntity<String> rejectRestaurant(
+            @PathVariable String restaurantId
+    ) {
+        log.info("update restaurant status to APPROVE");
+        String responseMessage = restaurantRegistrationServiceImpl.rejectRestaurantStatus(restaurantId);
+        return ResponseEntity.ok(responseMessage);
+    }
+
     @GetMapping("/status")
     public ResponseEntity<List<String>> getStatus(){
         return ResponseEntity.ok(restaurantRegistrationServiceImpl.getAllRestaurantStatus());
     }
 
 
+// ------------internal communication----------------------
+    @GetMapping("/internal/{id}")
+    public ResponseEntity<RestaurantRequestResponseDTO> getInternalRestaurant(@PathVariable String id){
+        return ResponseEntity.ok(restaurantRegistrationServiceImpl.getRestaurant(id));
+    }
 }

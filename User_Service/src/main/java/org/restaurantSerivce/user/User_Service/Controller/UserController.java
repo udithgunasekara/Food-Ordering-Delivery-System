@@ -107,20 +107,18 @@ public class UserController {
 
 //---------------------for internal communication---------------------------
     @GetMapping("/internal/{email}")
-    @PreAuthorize("isAuthenticated()") // refine later with ownership check
-    public ResponseEntity<InternalAdminUserResponseDTO> getUserForInternal(@PathVariable String email, @AuthenticationPrincipal UserPrinciple principal) {
+    public ResponseEntity<InternalAdminUserResponseDTO> getUserForInternal(@PathVariable String email/*, @AuthenticationPrincipal UserPrinciple principal*/) {
         log.info("get user by userid method invoked with id {}  for internal use",email);
-        if(!principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
+        /*if(!principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
             log.warn("User with id {} not authorized to get user {}",principal.getId(),email);
             throw new AccessDeniedException("You do not have permission to get another users info");
-        }
+        }*/
         InternalAdminUserResponseDTO userdetails = userService.getUserForInternal(email);
         log.info("user details recieved for user : {} and useranme as  {} for internal ",email,userdetails.getFirstName() + userdetails.getLastName());
         return ResponseEntity.ok(userdetails);
     }
 
     @GetMapping("/internal/delivery")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<InternalDeliveryPersonResponseDTO>> getAllDevliveryRoles() {
         log.info("get all devliy roles for internal comminication");
         return ResponseEntity.ok(userService.getAllDeliveryPersons());

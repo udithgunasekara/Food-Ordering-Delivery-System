@@ -1,4 +1,4 @@
-package org.restaurantSerivce.admin.Admin_Service.Security;
+/*package org.restaurantSerivce.admin.Admin_Service.Security;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -34,4 +34,4 @@ public class InternalTokenGenerator {
         Authentication auth = new UsernamePasswordAuthenticationToken(internalUser,null,null);
         return jwtTokenProvider.generateToken(auth);
     }
-}
+}*/
