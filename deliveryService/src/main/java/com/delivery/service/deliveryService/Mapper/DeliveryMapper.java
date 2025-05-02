@@ -7,9 +7,7 @@ public class DeliveryMapper {
 
     public static DeliveryDTO mapToDeliveryDTO(Delivery delivery) {
         return new DeliveryDTO(delivery.getDeliveryId(),
-                delivery.getOrderId(),
-                delivery.getCustomerId(),
-                delivery.getRestaurantId(),
+                delivery.getOrderDetails(),
                 delivery.getDeliveryPersonId(),
                 delivery.getCustomerLongitude(),
                 delivery.getCustomerLatitude(),
@@ -22,9 +20,7 @@ public class DeliveryMapper {
 
     public static Delivery mapToDelivery(DeliveryDTO deliveryDTO) {
         return new Delivery(deliveryDTO.getDeliveryId(),
-                deliveryDTO.getOrderId(),
-                deliveryDTO.getCustomerId(),
-                deliveryDTO.getRestaurantId(),
+                deliveryDTO.getOrderDetails(),
                 deliveryDTO.getDeliveryPersonId(),
                 deliveryDTO.getCustomerLongitude(),
                 deliveryDTO.getCustomerLatitude(),

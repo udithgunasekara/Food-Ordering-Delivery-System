@@ -1,5 +1,6 @@
 package com.delivery.service.deliveryService.Model;
 
+import com.delivery.service.deliveryService.Model.Enums.DeliveryStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,9 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Delivery {
     @Id
     private String deliveryId;
-    private String orderId;
-    private String customerId;
-    private String restaurantId;
+    private Order orderDetails;
     private String deliveryPersonId;
     private String customerLongitude;
     private String customerLatitude;
