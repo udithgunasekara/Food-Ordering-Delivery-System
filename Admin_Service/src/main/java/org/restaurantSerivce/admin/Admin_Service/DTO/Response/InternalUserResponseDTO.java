@@ -11,4 +11,11 @@ public class InternalUserResponseDTO {
     private String firstName;
     private String lastName;
     private String phone;
+    private String address;
+    private String city;
+    private String state;
+    private String zip;
+    private String country;
+    private String latitude;
+    private String longitude;
 }

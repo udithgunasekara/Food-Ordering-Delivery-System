@@ -108,7 +108,7 @@ public class UserController {
 //---------------------for internal communication---------------------------
     @GetMapping("/internal/{email}")
     public ResponseEntity<InternalAdminUserResponseDTO> getUserForInternal(@PathVariable String email/*, @AuthenticationPrincipal UserPrinciple principal*/) {
-        log.info("get user by userid method invoked with id {}  for internal use",email);
+        log.info("get user by email method invoked with email {}  for internal use",email);
         /*if(!principal.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SYSADMIN"))) {
             log.warn("User with id {} not authorized to get user {}",principal.getId(),email);
             throw new AccessDeniedException("You do not have permission to get another users info");
@@ -118,9 +118,20 @@ public class UserController {
         return ResponseEntity.ok(userdetails);
     }
 
+    @GetMapping("/internal/getuid/{userid}")
+    public ResponseEntity<InternalAdminUserResponseDTO> getUserByIdInternal(@PathVariable String userid) {
+        log.info("get user by userid method invoked with id {}  for internal use",userid);
+        InternalAdminUserResponseDTO userdetails = userService.getUserById(userid);
+        log.info("user details recieved for userid : {} and useranme as  {} for internal ",userid,userdetails.getFirstName() + userdetails.getLastName());
+        return ResponseEntity.ok(userdetails);
+    }
+
+
+
     @GetMapping("/internal/delivery")
     public ResponseEntity<List<InternalDeliveryPersonResponseDTO>> getAllDevliveryRoles() {
         log.info("get all devliy roles for internal comminication");
         return ResponseEntity.ok(userService.getAllDeliveryPersons());
     }
+
 }

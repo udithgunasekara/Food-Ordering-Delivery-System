@@ -222,4 +222,10 @@ public class UserServiceImpl implements IUserService {
                 .map(UserMapper::userToInternalDeliveryPersonDTO)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public InternalAdminUserResponseDTO getUserById(String userid) {
+        User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
+        return UserMapper.userToInternalUserDTO(user);
+    }
 }
