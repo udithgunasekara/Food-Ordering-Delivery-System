@@ -1,4 +1,4 @@
-package com.delivery.service.deliveryService.Model;
+package com.delivery.service.deliveryService.Model.Enums;
 
 public enum DeliveryStatus {
     PENDING,

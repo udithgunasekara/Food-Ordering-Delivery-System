@@ -1,6 +1,7 @@
 package com.delivery.service.deliveryService.DTO;
 
-import com.delivery.service.deliveryService.Model.DeliveryStatus;
+import com.delivery.service.deliveryService.Model.Enums.DeliveryStatus;
+import com.delivery.service.deliveryService.Model.Order;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,9 +13,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class DeliveryDTO {
     private String deliveryId;
-    private String orderId;
-    private String customerId;
-    private String restaurantId;
+    private Order orderDetails;
     private String deliveryPersonId;
     private String customerLongitude;
     private String customerLatitude;

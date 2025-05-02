@@ -1,4 +1,4 @@
-package com.order.service.orderService.model;
+package com.order.service.orderService.model.Enums;
 
 public enum PaymentStatus {
     PENDING,

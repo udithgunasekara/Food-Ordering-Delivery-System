@@ -1,21 +1,19 @@
-package com.order.service.orderService.DTO;
+package com.order.service.orderService.Event;
 
 import com.order.service.orderService.model.Item;
 import com.order.service.orderService.model.Enums.OrderStatus;
 import com.order.service.orderService.model.Enums.PaymentStatus;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Date;
 import java.util.List;
 
+@Data
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
-public class OrderDTO {
+@NoArgsConstructor
+public class OrderResponse {
     private String id;
     private String customerId;
     private String restaurantId;
