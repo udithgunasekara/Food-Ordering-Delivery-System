@@ -1,6 +1,7 @@
 import Notification from '../models/Notification.js';
-import { sendEmail } from '../services/emailService.js';
+import { sendEmail } from '../services/emailService.js'; 
 import { sendSMS } from '../services/smsService.js';
+import { publishDriverSelection } from '../services/kafkaConsumer.js';
 
 export const sendNotification = async (req, res) => {
   const { type, recipient, message, orderId } = req.body;
@@ -29,5 +30,32 @@ export const getNotifications = async (req, res) => {
     res.status(200).json(notifications);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+};
+
+export const acceptOrder = async (req, res) => {
+  const { driverId, orderId, driverDetails } = req.body;
+
+  try {
+    if (!driverId || !orderId || !driverDetails) {
+      return res.status(400).json({ error: 'Missing driverId, orderId, or driverDetails' });
+    }
+
+    // Publish driver selection to Kafka
+    await publishDriverSelection(driverId, orderId, driverDetails);
+
+    // Log notification
+    const notification = new Notification({
+      type: 'websocket',
+      recipient: driverId,
+      message: `Driver ${driverId} accepted order #${orderId}`,
+      orderId,
+      driverId,
+    });
+    await notification.save();
+
+    res.status(200).json({ message: 'Order accepted and notified' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to accept order' });
   }
 };
