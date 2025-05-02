@@ -21,7 +21,6 @@ public class RestaurantRegistrationMapper {
                 .longitude(restaurantReg.getLongitude())
                 .status(restaurantReg.getStatus())
                 .requestedAt(restaurantReg.getRequestedAt())
-                .modifiedAt(restaurantReg.getModifiedAt())
                 .build();
     }
 }

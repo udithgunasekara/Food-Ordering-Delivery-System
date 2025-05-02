@@ -53,6 +53,13 @@ public class UserMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .phone(user.getPhone())
+                .address(user.getAddress())
+                .city(user.getCity())
+                .state(user.getState())
+                .zip(user.getZip())
+                .country(user.getCountry())
+                .latitude(user.getLatitude())
+                .longitude(user.getLongitude())
                 .build();
     }
 

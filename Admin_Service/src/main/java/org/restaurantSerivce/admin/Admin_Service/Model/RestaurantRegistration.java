@@ -30,7 +30,6 @@ public class RestaurantRegistration {
     private String longitude;
     @CreatedDate
     private LocalDateTime requestedAt;
-    private LocalDateTime modifiedAt;
     private LocalDateTime decisionAt;
     private String decisionByAdminId;
 }
