@@ -19,3 +19,10 @@ export const EUREKA = {
   instancePort: process.env.SERVER_PORT || 3002,
   healthCheckUrl: `http://notification-service:${process.env.SERVER_PORT || 3002}/health`,
 };
+export const KAFKA_TOPICS = {
+  ORDER_PUBLISHED: 'order-published',
+  DRIVER_SELECTED: 'driver-selected',
+  ORDER_PLACED: 'order-placed',
+  DELIVERY_ASSIGNED: 'delivery-assigned',
+  PAYMENT_EVENTS: 'payment-events',
+};
