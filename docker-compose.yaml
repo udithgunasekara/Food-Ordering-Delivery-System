@@ -118,6 +118,9 @@
 #       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
 #       - MONGO_URI=${MONGO_URI}
 #       - KAFKA_BROKER=kafka:9092
+#       - PORT=${NOTIFICATION_SERVICE_PORT}
+#       - MONGO_URI=${MONGO_URI}
+#       - KAFKA_BROKER=${KAFKA_BROKER}
 #       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
 #       - SENDGRID_SENDER_EMAIL=${SENDGRID_SENDER_EMAIL}
 #       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
@@ -425,6 +428,7 @@ services:
       timeout: 2s
       retries: 5
 
+
   user-service:
     build: ./User_Service
     container_name: user-service
@@ -485,6 +489,31 @@ services:
       - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
       - KAFKA_BROKER=kafka:9092
     depends_on:
+       kafka:
+         condition: service_healthy
+       service-registry:
+        condition: service_healthy
+       zookeeper:
+         condition: service_healthy
+    networks:
+      - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${RESTAURANT_SERVICE_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
+  delivery-service:
+    build: ./deliveryService
+    container_name: delivery-service
+    ports:
+      - "${DELIVERY_SERVICE_PORT}:${DELIVERY_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${DELIVERY_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - KAFKA_BROKER=kafka:9092
+    depends_on:
       kafka:
         condition: service_healthy
       service-registry:
@@ -495,10 +524,36 @@ services:
       - food-delivery-network
     restart: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${RESTAURANT_SERVICE_PORT}/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${DELIVERY_SERVICE_PORT}/actuator/health"]
       interval: 10s
       timeout: 2s
       retries: 5
+
+  order-service:
+    build: ./orderService
+    container_name: order-service
+    ports:
+      - "${ORDER_SERVICE_PORT}:${ORDER_SERVICE_PORT}"
+    environment:
+      - SERVER_PORT=${DELIVERY_SERVICE_PORT}
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://service-registry:${SERVICE_REGISTRY_PORT}/eureka/
+      - KAFKA_BROKER=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${ORDER_SERVICE_PORT}/actuator/health"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
+
 
 networks:
   food-delivery-network:

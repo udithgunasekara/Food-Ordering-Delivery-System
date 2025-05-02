@@ -1,0 +1,13 @@
+resilience4j:
+  retry:
+    instances:
+      driverService:
+        max-attempts: 3
+        wait-duration: 5s
+  circuitbreaker:
+    instances:
+      driverService:
+        register-health-indicator: true
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        sliding-window-size: 5
