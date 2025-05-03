@@ -248,7 +248,7 @@ export const users: User[] = [
   {
     id: '4',
     name: 'Admin User',
-    email: 'admin@foodexpress.com',
+    email: 'admin@fooddelivery.com',
     phone: '555-789-0123',
     role: 'admin'
   }

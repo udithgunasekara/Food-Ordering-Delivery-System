@@ -59,11 +59,31 @@ export interface Order {
   createdAt: string;
   estimatedDeliveryTime?: string;
 }
-
 export interface Category {
   id: string;
   name: string;
   icon: string;
+}
+
+// login page interfaces
+export interface JwtPayload{
+  sub: string;
+  roles: string[];
+  [key: string]: any;
+}
+
+export interface UserFromToken {
+  email: string;
+  role: string[];
+  token: string;
+}
+
+export interface AuthContextType {
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  role: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
 }
 
 export interface User {
@@ -74,6 +94,7 @@ export interface User {
   role: 'customer' | 'restaurant' | 'delivery' | 'admin';
   addresses?: string[];
 }
+
 
 export interface DeliveryPerson {
   id: string;
