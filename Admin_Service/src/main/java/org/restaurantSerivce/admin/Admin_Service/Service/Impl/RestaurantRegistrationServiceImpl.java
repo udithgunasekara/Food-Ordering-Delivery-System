@@ -166,6 +166,12 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
     }
 
     @Override
+    public RestaurantRequestResponseDTO getRestauratFromOwnerId(String ownerId) {
+        RestaurantRegistration restaurant = findRestauratByOwnerORThrow(ownerId);
+        return RestaurantRegistrationMapper.RestRegistrationToResponseDTO(restaurant);
+    }
+
+    @Override
     public List<String> getAllRestaurantStatus() {
         return Arrays.stream(RestaurantStatus.values())
                 .map(Enum::name)
@@ -173,13 +179,21 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
     }
 
 //    ----------helpers -------------------
-private RestaurantRegistration findRestaurantOrThrow(String restaurantId) {
-    return adminRepository.findById(restaurantId)
-            .orElseThrow(() -> {
-                log.error("Restaurant not found with id: {}", restaurantId);
-                return new ResourceNotFoundException("Restaurant", "Restaurant id", restaurantId);
-            });
-}
+    private RestaurantRegistration findRestaurantOrThrow(String restaurantId) {
+        return adminRepository.findById(restaurantId)
+                .orElseThrow(() -> {
+                    log.error("Restaurant not found with id: {}", restaurantId);
+                    return new ResourceNotFoundException("Restaurant", "Restaurant id", restaurantId);
+                });
+    }
+
+    private RestaurantRegistration findRestauratByOwnerORThrow(String ownerid) {
+        return adminRepository.findByOwnerId(ownerid)
+                .orElseThrow(() -> {
+                    log.error("Restaurant not found with owner id: {}", ownerid);
+                    return new ResourceNotFoundException("Restaurant", "Ownerid id", ownerid);
+                });
+    }
 
     private RestaurantStatus parseStatusOrThrow(String status) {
         try {

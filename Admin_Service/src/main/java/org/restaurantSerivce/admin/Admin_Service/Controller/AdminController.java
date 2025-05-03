@@ -41,9 +41,13 @@ public class AdminController {
     }
 
     @GetMapping("/{restId}")
-    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<RestaurantRequestResponseDTO> getRestaurantFromId(@PathVariable String restId){
         return ResponseEntity.ok(restaurantRegistrationServiceImpl.getRestaurant(restId));
+    }
+
+    @GetMapping("/owner/{ownerid}")
+    public ResponseEntity<RestaurantRequestResponseDTO> getRestaurantFromOwnerID(@PathVariable String ownerid){
+        return ResponseEntity.ok(restaurantRegistrationServiceImpl.getRestauratFromOwnerId(ownerid));
     }
 
     @GetMapping("/all")
@@ -105,4 +109,6 @@ public class AdminController {
     public ResponseEntity<RestaurantRequestResponseDTO> getInternalRestaurant(@PathVariable String id){
         return ResponseEntity.ok(restaurantRegistrationServiceImpl.getRestaurant(id));
     }
+
+
 }
