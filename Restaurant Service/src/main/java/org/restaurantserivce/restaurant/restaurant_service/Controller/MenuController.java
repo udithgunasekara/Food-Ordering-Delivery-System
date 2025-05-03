@@ -21,6 +21,13 @@ public class MenuController {
         return menuService.createMenu(menuDTO);
     }
 
+    //create get all things
+    @GetMapping
+    @ResponseStatus(HttpStatus.FOUND)
+    public List<MenuDTO> getAllMenus() {
+        return menuService.getAllMenus();
+    }
+
 
     // we will give the restaurant id and that will return all menus
     @GetMapping("/{restId}")
