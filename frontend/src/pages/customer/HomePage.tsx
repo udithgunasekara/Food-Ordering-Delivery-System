@@ -23,11 +23,11 @@ const HomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   //set jwttoken in to session storage
-  const token = localStorage.setItem('jwt', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaWxzaGFuQGV4YW1wbGUuY29tIiwicm9sZXMiOlsiUk9MRV9DVVNUT01FUiIsIlJPTEVfU1lTQURNSU4iXSwiaWF0IjoxNzQ2MjY0NjUwLCJleHAiOjE3NDYyNjgyNTB9.cnmk--FLNSOI662ObcazQVsYHxRwZN28bW3k0J28KIQ');
+  const token = localStorage.setItem('jwt', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaWxzaGFuQGV4YW1wbGUuY29tIiwicm9sZXMiOlsiUk9MRV9DVVNUT01FUiIsIlJPTEVfU1lTQURNSU4iXSwiaWF0IjoxNzQ2MjkzNDA2LCJleHAiOjE3NDYyOTcwMDZ9.y2YSFPRSI4PgpFiS-aZK5SIlbralS3EI8bcUxrfBhjw');
 
   useEffect(() => {
     const jwt = localStorage.getItem('jwt');
-    console.log('JWT Token:', jwt);
+    console.log
     axios.get('http://localhost:8080/api/admin/all', {
       headers: {
         'Authorization': `Bearer ${jwt}`

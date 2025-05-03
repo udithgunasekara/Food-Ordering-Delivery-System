@@ -219,7 +219,6 @@
 //     },
 //   });
 // };
-
 import { Kafka } from 'kafkajs';
 import { sendEmail } from './emailService.js';
 import { sendSMS } from './smsService.js';
@@ -245,6 +244,7 @@ export const startKafkaConsumer = async () => {
       KAFKA_TOPICS.ORDER_PLACED,
       KAFKA_TOPICS.DELIVERY_ASSIGNED,
       KAFKA_TOPICS.PAYMENT_EVENTS,
+      'nearby_drivers', // Add the nearby_drivers topic
     ], 
     fromBeginning: true 
   });
@@ -255,15 +255,45 @@ export const startKafkaConsumer = async () => {
         const data = JSON.parse(message.value.toString());
         let notification;
 
-        if (topic === KAFKA_TOPICS.ORDER_PUBLISHED) {
+        if (topic === 'nearby_drivers') {
+          // Validate required fields
+          if (!data.deliveryId || !data.orderDetails || !data.DriverDetails) {
+            console.error('Missing deliveryId, orderDetails, or DriverDetails in nearby_drivers event:', data);
+            return;
+          }
+
+          // Notify each driver in DriverDetails via WebSocket
+          for (const driver of data.DriverDetails) {
+            if (!driver.id || !driver.email) {
+              console.error('Missing driver id or email in DriverDetails:', driver);
+              continue;
+            }
+
+            // Send WebSocket notification to the driver
+            await sendWebSocketNotification(driver.id, {
+              deliveryId: data.deliveryId,
+              orderDetails: data.orderDetails,
+              message: `New delivery #${data.deliveryId} available for pickup.`,
+            });
+
+            // Log the notification
+            notification = new Notification({
+              type: 'websocket',
+              recipient: driver.id,
+              message: `Delivery #${data.deliveryId} published to driver ${driver.id}`,
+              orderId: data.orderDetails.id,
+              driverId: driver.id,
+            });
+            await notification.save();
+          }
+        } else if (topic === KAFKA_TOPICS.ORDER_PUBLISHED) {
           if (!data.drivers || !data.orderId) {
             console.error('Missing drivers or orderId in order-published event:', data);
             return;
           }
-          // Notify each driver via WebSocket
           for (const driver of data.drivers) {
             if (driver.driverId) {
-              sendWebSocketNotification(driver.driverId, {
+              await sendWebSocketNotification(driver.driverId, {
                 orderId: data.orderId,
                 orderDetails: data.orderDetails,
                 message: `New order #${data.orderId} available for pickup.`,

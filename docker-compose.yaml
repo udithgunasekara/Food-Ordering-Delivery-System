@@ -297,6 +297,28 @@ services:
       timeout: 2s
       retries: 5
 
+  frontend:
+    build: ./frontend  # Assuming your Vite React app is in a 'frontend' directory
+    container_name: vite-frontend
+    ports:
+      - "5173:5173"  # Map the Vite default port
+    environment:
+      - NODE_ENV=development
+      - API_GATEWAY_URL=http://api-gateway:${API_GATEWAY_PORT}  # Connect to the API gateway
+    volumes:
+      - ./frontend:/app  # For development hot-reloading (optional)
+      - /app/node_modules  # Exclude node_modules from volume mounting
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - food-delivery-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 10s
+      timeout: 2s
+      retries: 5
 
 networks:
   food-delivery-network:
