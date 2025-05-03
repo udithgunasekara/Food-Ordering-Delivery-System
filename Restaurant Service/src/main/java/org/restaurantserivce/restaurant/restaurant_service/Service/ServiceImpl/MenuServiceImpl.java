@@ -76,5 +76,23 @@ public class MenuServiceImpl implements MenuService {
 
     }
 
+    @Override
+    public List<MenuDTO> getAllMenus() {
+        //get all menus
+        //create simple for loop
+        //create array list
+        List<Menu> menus = menuRepo.findAll();
+        List<MenuDTO> menuDTOS = new ArrayList<>();
+        if(menus.isEmpty()){
+            throw new RuntimeException("menu Id is not found");
+        }else {
+            //create for loop
+            for (Menu menu : menus) {
+                menuDTOS.add(MenuMapper.toDTO(menu));
+            }
+            return menuDTOS;
+        }
+    }
+
 
 }

@@ -13,7 +13,7 @@ public class MenuMapper {
     public static MenuDTO toDTO(Menu menu) {
       List<MenuItemDTO> itemsDTOs = new ArrayList<>();
       for(MenuItems items: menu.getItems()){
-          itemsDTOs.add(new MenuItemDTO(items.getName(), items.getPrice()));
+          itemsDTOs.add(new MenuItemDTO(items.getName(), items.getPrice(), items.getDescription(), items.getUrl()));
       }
         return new MenuDTO(
                 menu.getId(),
@@ -27,7 +27,7 @@ public class MenuMapper {
     public static Menu toEntity(MenuDTO dto) {
         List<MenuItems> items = new ArrayList<>();
         for(MenuItemDTO dtoItems: dto.getItems()){
-            items.add(new MenuItems(dtoItems.getName(), dtoItems.getPrice()));
+            items.add(new MenuItems(dtoItems.getName(), dtoItems.getPrice(), dtoItems.getDescription(), dtoItems.getUrl()));
         }
 
 
