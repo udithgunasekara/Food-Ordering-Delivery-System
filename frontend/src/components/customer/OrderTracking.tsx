@@ -30,41 +30,71 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const prevDeliveryRef = useRef<Delivery | null>(null);
 
-  // Check if driver is assigned
+  // Strict check for driver assignment including coordinate validation
   const isDriverAssigned = delivery?.deliveryPersonId && 
-                          delivery.deliveryPersonLatitude && 
-                          delivery.deliveryPersonLongitude;
+                         delivery.deliveryPersonLatitude && 
+                         delivery.deliveryPersonLongitude &&
+                         !isNaN(parseFloat(delivery.deliveryPersonLatitude)) && 
+                         !isNaN(parseFloat(delivery.deliveryPersonLongitude));
+
+  // Deep comparison of delivery objects
+  const hasDeliveryChanged = (prev: Delivery | null, current: Delivery | null): boolean => {
+    if (prev === null && current === null) return false;
+    if (prev === null || current === null) return true;
+    return JSON.stringify(prev) !== JSON.stringify(current);
+  };
 
   // Fetch delivery details
-  useEffect(() => {
-    const fetchDeliveryDetails = async () => {
-      try {
-        const response = await fetch(`http://localhost:8080/api/delivery/get/order/${order.id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch delivery details');
-        }
-        const data: Delivery = await response.json();
-        setDelivery(data);
-        setLoading(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        setLoading(false);
+  const fetchDeliveryDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/delivery/get/order/${order.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch delivery details');
       }
-    };
+      const data: Delivery = await response.json();
+      
+      if (hasDeliveryChanged(prevDeliveryRef.current, data)) {
+        setDelivery(data);
+        prevDeliveryRef.current = data;
+      }
+      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setLoading(false);
+    }
+  };
 
+  // Setup polling for delivery updates
+  useEffect(() => {
     if (order.orderStatus === 'PACKED' || order.orderStatus === 'OUT_FOR_DELIVERY') {
       fetchDeliveryDetails();
+      pollingIntervalRef.current = setInterval(fetchDeliveryDetails, 10000);
+      
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+        }
+      };
     }
   }, [order.id, order.orderStatus]);
 
-  // Initialize the map and draw routes when delivery details are available
+  // Initialize the map and draw routes when delivery details change
   useEffect(() => {
     if ((order.orderStatus === 'PACKED' || order.orderStatus === 'OUT_FOR_DELIVERY') && 
         delivery && 
-        !mapInstance.current && 
         mapRef.current) {
-      // Load Google Maps script if not already loaded
+      
+      if (mapInstance.current) {
+        mapInstance.current = null;
+      }
+      if (directionsRenderer.current) {
+        directionsRenderer.current.setMap(null);
+        directionsRenderer.current = null;
+      }
+
       if (!window.google) {
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBoJXxxWOMKdexaiud8ImxzzkaHtEIYtds&libraries=places,directions`;
@@ -77,7 +107,6 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
     }
 
     return () => {
-      // Clean up map instance when component unmounts
       if (mapInstance.current) {
         mapInstance.current = null;
       }
@@ -91,7 +120,6 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
   const initializeMapAndDrawRoute = () => {
     if (!delivery || !mapRef.current || !window.google) return;
 
-    // Parse coordinates
     const restaurantLocation = {
       lat: parseFloat(delivery.restaurantLatitude),
       lng: parseFloat(delivery.restaurantLongitude)
@@ -102,12 +130,11 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
       lng: parseFloat(delivery.customerLongitude)
     };
 
-    const driverLocation = delivery.deliveryPersonLatitude && delivery.deliveryPersonLongitude ? {
+    const driverLocation = isDriverAssigned ? {
       lat: parseFloat(delivery.deliveryPersonLatitude),
       lng: parseFloat(delivery.deliveryPersonLongitude)
     } : null;
 
-    // Initialize map centered between restaurant and customer
     const bounds = new window.google.maps.LatLngBounds();
     bounds.extend(restaurantLocation);
     bounds.extend(customerLocation);
@@ -120,14 +147,12 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
     });
     mapInstance.current.fitBounds(bounds);
 
-    // Initialize directions renderer
     directionsRenderer.current = new window.google.maps.DirectionsRenderer({
       map: mapInstance.current,
       suppressMarkers: true,
       preserveViewport: false
     });
 
-    // Add custom markers
     new window.google.maps.Marker({
       position: restaurantLocation,
       map: mapInstance.current,
@@ -156,25 +181,9 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
         }
       });
 
-      // Draw route based on delivery status
       const directionsService = new window.google.maps.DirectionsService();
       
-      if (order.orderStatus === 'PACKED') {
-        // Draw route from driver to restaurant
-        directionsService.route(
-          {
-            origin: driverLocation,
-            destination: restaurantLocation,
-            travelMode: window.google.maps.TravelMode.DRIVING
-          },
-          (response: any, status: any) => {
-            if (status === 'OK') {
-              directionsRenderer.current.setDirections(response);
-            }
-          }
-        );
-      } else if (order.orderStatus === 'OUT_FOR_DELIVERY') {
-        // Draw route from restaurant to customer
+      if (order.orderStatus === 'OUT_FOR_DELIVERY') {
         directionsService.route(
           {
             origin: restaurantLocation,
@@ -191,29 +200,39 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
     }
   };
 
+  const getDriverStatusMessage = () => {
+    if (!isDriverAssigned) {
+      return 'Searching for driver...';
+    }
+    return order.orderStatus === 'OUT_FOR_DELIVERY' 
+      ? 'Driver is delivering your order' 
+      : 'Driver assigned';
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      {/* Map Section - Display only if order is packed or out for delivery */}
       {(order.orderStatus === 'PACKED' || order.orderStatus === 'OUT_FOR_DELIVERY') && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">Delivery Tracking</h3>
           {loading && <div className="text-center py-8">Loading map...</div>}
           {error && <div className="text-red-500 text-center py-8">{error}</div>}
           {!loading && !error && (
-            <div 
-              ref={mapRef} 
-              style={{ height: '300px', width: '100%', borderRadius: '8px' }}
-              className="border border-gray-200"
-            >
-              {/* Map will be rendered here */}
-            </div>
+            <>
+              <div 
+                ref={mapRef} 
+                style={{ height: '300px', width: '100%', borderRadius: '8px' }}
+                className="border border-gray-200"
+              />
+              <div className="mt-2 text-sm text-gray-600">
+                {getDriverStatusMessage()}
+              </div>
+            </>
           )}
         </div>
       )}
 
       <h2 className="text-lg font-semibold mb-6">Order Tracking</h2>
 
-      {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex justify-between mb-2">
           {statusSteps.map((step, index) => {
@@ -258,7 +277,6 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
           })}
         </div>
 
-        {/* Progress Bar */}
         <div className="relative mt-4">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200"></div>
           <div
@@ -266,11 +284,10 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
             style={{
               width: `${(currentStepIndex / (statusSteps.length - 1)) * 100}%`
             }}
-          ></div>
+          />
         </div>
       </div>
 
-      {/* Estimated Time or Searching for Driver */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <div className="flex flex-col items-center">
           <h3 className="text-sm font-semibold mb-1">
@@ -279,8 +296,13 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
           <p className="text-lg font-bold">
             {isDriverAssigned 
               ? statusSteps[currentStepIndex]?.time || 'Calculating...'
-              : 'Searching for driver...'}
+              : getDriverStatusMessage()}
           </p>
+          {isDriverAssigned && delivery?.deliveryPersonId && (
+            <p className="text-sm text-gray-600 mt-1">
+              Driver: {delivery.deliveryPersonId}
+            </p>
+          )}
         </div>
       </div>
     </div>
