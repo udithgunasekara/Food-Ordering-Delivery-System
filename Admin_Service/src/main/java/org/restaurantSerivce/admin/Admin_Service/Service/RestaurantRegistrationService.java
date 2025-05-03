@@ -21,4 +21,5 @@ public interface RestaurantRegistrationService {
     public List<String> getAllRestaurantStatus();
     public String approveRestaurantStatus(String restaurantId);
     public String rejectRestaurantStatus(String restaurantId);
+    public RestaurantRequestResponseDTO getRestauratFromOwnerId(String ownerId);
 }
