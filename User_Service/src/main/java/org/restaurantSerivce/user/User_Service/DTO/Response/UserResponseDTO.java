@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class UserResponseDTO {
+    private String id;
     private String username;
     private String email;
     private String firstName;

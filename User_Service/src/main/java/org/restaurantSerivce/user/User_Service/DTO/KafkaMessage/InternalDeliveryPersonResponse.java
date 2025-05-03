@@ -1,15 +1,12 @@
 package org.restaurantSerivce.user.User_Service.DTO.KafkaMessage;
 
 import lombok.*;
-import org.restaurantSerivce.user.User_Service.Model.Enums.RoleType;
-
-import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class DeliveryPersonAddedNotification {
+public class InternalDeliveryPersonResponse {
     private String id;
     private String email;
     private String firstName;
