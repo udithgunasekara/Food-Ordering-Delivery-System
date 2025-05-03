@@ -26,9 +26,10 @@ public class RestaurantRegistration {
     private String ownerFullName;
     private String ownerEmail;
     private String ownerContact;
+    private String latitude;
+    private String longitude;
     @CreatedDate
     private LocalDateTime requestedAt;
-    private LocalDateTime modifiedAt;
     private LocalDateTime decisionAt;
     private String decisionByAdminId;
 }

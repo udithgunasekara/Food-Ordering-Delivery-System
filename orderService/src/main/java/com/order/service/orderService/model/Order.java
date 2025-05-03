@@ -1,5 +1,7 @@
 package com.order.service.orderService.model;
 
+import com.order.service.orderService.model.Enums.OrderStatus;
+import com.order.service.orderService.model.Enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

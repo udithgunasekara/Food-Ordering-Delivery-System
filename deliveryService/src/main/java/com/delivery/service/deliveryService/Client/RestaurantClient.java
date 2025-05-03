@@ -5,8 +5,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "restaurant-service",  url = "http://localhost:8082/api/restaurants")
+@FeignClient(name = "ADMIN-SERVICE")
 public interface RestaurantClient {
-    @GetMapping("/{id}")
-    RestaurantResponse getRestaurantCoordinates(@PathVariable("id") String restaurantId);
+    @GetMapping("/api/admin/internal/{id}")
+    RestaurantResponse getInternalRestaurant(@PathVariable("id") String id);
 }

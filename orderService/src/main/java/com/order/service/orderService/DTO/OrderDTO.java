@@ -1,8 +1,8 @@
 package com.order.service.orderService.DTO;
 
 import com.order.service.orderService.model.Item;
-import com.order.service.orderService.model.OrderStatus;
-import com.order.service.orderService.model.PaymentStatus;
+import com.order.service.orderService.model.Enums.OrderStatus;
+import com.order.service.orderService.model.Enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

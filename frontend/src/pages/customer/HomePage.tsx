@@ -1,21 +1,61 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import Header from '../../components/common/Header';
 import Footer from '../../components/common/Footer';
 import CategoryList from '../../components/customer/CategoryList';
 import RestaurantCard from '../../components/customer/RestaurantCard';
-import { restaurants } from '../../data/mockData';
+import axios from 'axios';
+
+interface Restaurant {
+  id: string;
+  name: string;
+  imageUrl: string;
+  cuisineType: string;
+  rating: number;
+  estimatedDeliveryTime: string;
+  deliveryFee: string;
+  isOpen: boolean;
+}
 
 const HomePage: React.FC = () => {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Filter restaurants based on search and category
+  //set jwttoken in to session storage
+  const token = localStorage.setItem('jwt', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaWxzaGFuQGV4YW1wbGUuY29tIiwicm9sZXMiOlsiUk9MRV9DVVNUT01FUiIsIlJPTEVfU1lTQURNSU4iXSwiaWF0IjoxNzQ2MjY0NjUwLCJleHAiOjE3NDYyNjgyNTB9.cnmk--FLNSOI662ObcazQVsYHxRwZN28bW3k0J28KIQ');
+
+  useEffect(() => {
+    const jwt = localStorage.getItem('jwt');
+    console.log('JWT Token:', jwt);
+    axios.get('http://localhost:8080/api/admin/all', {
+      headers: {
+        'Authorization': `Bearer ${jwt}`
+      }
+    })
+      .then(response => {
+        const mapped = response.data.map((item: any): Restaurant => ({
+          id: item.id,
+          name: item.restaurantName,
+          imageUrl: 'https://source.unsplash.com/random/400x300/?restaurant', // temp image
+          cuisineType: 'Mixed Cuisine', // temp data
+          rating: 4.5, // temp data
+          estimatedDeliveryTime: '30-45 min', // temp data
+          deliveryFee: '$2.99', // temp data
+          isOpen: item.status === 'APPROVED', // or however your logic goes
+        }));
+        setRestaurants(mapped);
+      })
+      .catch(error => {
+        console.error('Failed to fetch restaurants:', error);
+      });
+  }, []);
+
   const filteredRestaurants = restaurants.filter(restaurant => {
-    const matchesSearch = restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         restaurant.cuisineType.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      restaurant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurant.cuisineType.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || restaurant.cuisineType === selectedCategory;
-    
     return matchesSearch && matchesCategory;
   });
 
@@ -26,10 +66,9 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      
+
       <main className="flex-grow pt-24 pb-12">
         <div className="container mx-auto px-4">
-          {/* Hero Section */}
           <section className="relative rounded-xl overflow-hidden mb-8 h-64 md:h-80">
             <img 
               src="https://images.pexels.com/photos/1640773/pexels-photo-1640773.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" 
@@ -41,7 +80,6 @@ const HomePage: React.FC = () => {
                 Food delivery from your <br className="hidden md:block" />
                 favorite restaurants
               </h1>
-              
               <div className="relative max-w-md">
                 <input
                   type="text"
@@ -54,24 +92,22 @@ const HomePage: React.FC = () => {
               </div>
             </div>
           </section>
-          
-          {/* Categories */}
+
           <CategoryList 
             onSelectCategory={handleCategorySelect}
             selectedCategory={selectedCategory}
           />
-          
-          {/* Restaurant Listings */}
+
           <section>
             <h2 className="text-xl font-semibold mb-4">
               {selectedCategory ? selectedCategory : 'All Restaurants'}
             </h2>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredRestaurants.map(restaurant => (
                 <RestaurantCard key={restaurant.id} restaurant={restaurant} />
               ))}
-              
+
               {filteredRestaurants.length === 0 && (
                 <div className="col-span-full text-center py-10 text-gray-500">
                   <p>No restaurants found matching your criteria.</p>
@@ -81,7 +117,7 @@ const HomePage: React.FC = () => {
           </section>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

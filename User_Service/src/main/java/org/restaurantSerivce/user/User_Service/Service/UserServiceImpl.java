@@ -2,6 +2,7 @@ package org.restaurantSerivce.user.User_Service.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.restaurantSerivce.user.User_Service.DTO.KafkaMessage.DeliveryPersonAddedNotification;
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalAdminUserResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalDeliveryPersonResponseDTO;
@@ -29,6 +30,7 @@ public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
     public UserResponseDTO registerUser(UserRequestDTO request) {
@@ -154,9 +156,23 @@ public class UserServiceImpl implements IUserService {
                 })
                 .toList();
         User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
-
+        System.out.println("🛑🛑🛑 rols are " + roleTypes);
         user.setRoles(roleTypes);
         User savedUser = userRepository.save(user);
+        if(roleTypes.contains(RoleType.ROLE_DELIVERY_AGENT)){
+            log.info("message generated to kafka topic");
+            kafkaProducerService.setDeliveryPersonAddedMessage(
+                    DeliveryPersonAddedNotification.builder()
+                            .id(user.getId())
+                            .email(user.getEmail())
+                            .firstName(user.getFirstName())
+                            .lastName(user.getLastName())
+                            .phone(user.getPhone())
+                            .latitude(user.getLatitude())
+                            .longitude(user.getLongitude())
+                            .build()
+            );
+        }
         return UserMapper.userToUserResponseDTO(savedUser);
     }
 
@@ -205,5 +221,11 @@ public class UserServiceImpl implements IUserService {
         return deliveryAgents.stream()
                 .map(UserMapper::userToInternalDeliveryPersonDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public InternalAdminUserResponseDTO getUserById(String userid) {
+        User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
+        return UserMapper.userToInternalUserDTO(user);
     }
 }

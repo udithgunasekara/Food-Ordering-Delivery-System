@@ -4,6 +4,7 @@ import feign.FeignException;
 import jakarta.ws.rs.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.restaurantSerivce.admin.Admin_Service.DTO.KafkaMessage.RestaurantStatusNotification;
 import org.restaurantSerivce.admin.Admin_Service.DTO.Request.RestaurantRegistrationRequestDTO;
 import org.restaurantSerivce.admin.Admin_Service.DTO.Response.InternalUserResponseDTO;
 import org.restaurantSerivce.admin.Admin_Service.DTO.Response.RestaurantRequestResponseDTO;
@@ -14,10 +15,11 @@ import org.restaurantSerivce.admin.Admin_Service.Service.RestaurantRegistrationS
 import org.restaurantSerivce.admin.Admin_Service.Feign.UserServiceClientInterface;
 import org.restaurantSerivce.admin.Admin_Service.Model.Enums.RestaurantStatus;
 import org.restaurantSerivce.admin.Admin_Service.Model.RestaurantRegistration;
-import org.restaurantSerivce.admin.Admin_Service.Security.InternalTokenGenerator;
+//import org.restaurantSerivce.admin.Admin_Service.Security.InternalTokenGenerator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,9 +29,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RestaurantRegistrationServiceImpl implements RestaurantRegistrationService {
 
-    private final InternalTokenGenerator internalTokenGenerator;
+//    private final InternalTokenGenerator internalTokenGenerator;
     private final UserServiceClientInterface userServiceClient;
     private final AdminRepository adminRepository;
+    private final KafkaProducerService kafkaProducerService;
 
 
     @Override
@@ -37,8 +40,7 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
         log.info("request recieved with restaurant registration request");
         try {
             ResponseEntity<InternalUserResponseDTO> response = userServiceClient.getUserForInternal(
-                    requestDTO.getOwnerEmail(),
-                    generateProxyToken()
+                    requestDTO.getOwnerEmail()
             );
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 InternalUserResponseDTO user = response.getBody();
@@ -48,6 +50,8 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
                         .contactEmail(requestDTO.getContactEmail())
                         .contactPhone(requestDTO.getContactPhone())
                         .address(requestDTO.getAddress())
+                        .latitude(requestDTO.getLatitude())
+                        .longitude(requestDTO.getLongitude())
                         .status(RestaurantStatus.PENDING)
                         .ownerId(user.getId())
                         .ownerFullName(user.getFirstName() + " " + user.getLastName())
@@ -78,11 +82,11 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
         return userServiceClient.getUserForInternal(email,token);
     }*/
 
-    private String generateProxyToken() {
+/*    private String generateProxyToken() {
         String token = internalTokenGenerator.getInternalToken();
         log.info("Proxy token generated to internal communication");
         return "Bearer " + token;
-    }
+    }*/
 
     @Override
     public String deleteRegistrationRequest(String restaurantId) {
@@ -131,6 +135,42 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
         return "Successfully updated restaurant status";
     }
 
+    public String approveRestaurantStatus(String restaurantId) {
+        RestaurantRegistration restaurant = findRestaurantOrThrow(restaurantId);
+        updateRestaurantStatus(restaurantId, "approved");
+        kafkaProducerService.sendRestaurantStatusNotification(
+                RestaurantStatusNotification.builder()
+                        .userId(restaurant.getOwnerId())
+                        .restaurantId(restaurantId)
+                        .restaurantName(restaurant.getRestaurantName())
+                        .message("Your restaurant registration request has been APPROVED.")
+                        .time(LocalDateTime.now())
+                        .build()
+        );
+        return "Successfully APPEOVED restaurant status";
+    }
+
+    public String rejectRestaurantStatus(String restaurantId) {
+        RestaurantRegistration restaurant = findRestaurantOrThrow(restaurantId);
+        updateRestaurantStatus(restaurantId, "rejected");
+        kafkaProducerService.sendRestaurantStatusNotification(
+                RestaurantStatusNotification.builder()
+                        .userId(restaurant.getOwnerId())
+                        .restaurantId(restaurantId)
+                        .restaurantName(restaurant.getRestaurantName())
+                        .message("Your restaurant registration request has been REJECTED.")
+                        .time(LocalDateTime.now())
+                        .build()
+        );
+        return "Successfully REJECTED restaurant status";
+    }
+
+    @Override
+    public RestaurantRequestResponseDTO getRestauratFromOwnerId(String ownerId) {
+        RestaurantRegistration restaurant = findRestauratByOwnerORThrow(ownerId);
+        return RestaurantRegistrationMapper.RestRegistrationToResponseDTO(restaurant);
+    }
+
     @Override
     public List<String> getAllRestaurantStatus() {
         return Arrays.stream(RestaurantStatus.values())
@@ -139,13 +179,21 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
     }
 
 //    ----------helpers -------------------
-private RestaurantRegistration findRestaurantOrThrow(String restaurantId) {
-    return adminRepository.findById(restaurantId)
-            .orElseThrow(() -> {
-                log.error("Restaurant not found with id: {}", restaurantId);
-                return new ResourceNotFoundException("Restaurant", "Restaurant id", restaurantId);
-            });
-}
+    private RestaurantRegistration findRestaurantOrThrow(String restaurantId) {
+        return adminRepository.findById(restaurantId)
+                .orElseThrow(() -> {
+                    log.error("Restaurant not found with id: {}", restaurantId);
+                    return new ResourceNotFoundException("Restaurant", "Restaurant id", restaurantId);
+                });
+    }
+
+    private RestaurantRegistration findRestauratByOwnerORThrow(String ownerid) {
+        return adminRepository.findByOwnerId(ownerid)
+                .orElseThrow(() -> {
+                    log.error("Restaurant not found with owner id: {}", ownerid);
+                    return new ResourceNotFoundException("Restaurant", "Ownerid id", ownerid);
+                });
+    }
 
     private RestaurantStatus parseStatusOrThrow(String status) {
         try {

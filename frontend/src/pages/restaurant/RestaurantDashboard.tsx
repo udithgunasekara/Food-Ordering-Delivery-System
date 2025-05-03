@@ -15,6 +15,11 @@ const RestaurantDashboard: React.FC = () => {
   const [isAddingItem, setIsAddingItem] = useState(false);
   const { logout } = useAuth();
 
+
+  //sessionStorage.setItem('id', );
+  sessionStorage.setItem('restaurantName', "55555");
+  sessionStorage.setItem('restID', "55555");
+
   // Filter for orders from this restaurant
   const restaurantOrders = orders.filter(order => order.restaurantId === '1');
   
