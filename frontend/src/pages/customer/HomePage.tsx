@@ -23,7 +23,7 @@ const HomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   //set jwttoken in to session storage
-  const token = localStorage.setItem('jwt', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaWxzaGFuQGV4YW1wbGUuY29tIiwicm9sZXMiOlsiUk9MRV9DVVNUT01FUiIsIlJPTEVfU1lTQURNSU4iXSwiaWF0IjoxNzQ2Mjg5MDkyLCJleHAiOjE3NDYyOTI2OTJ9.urqgc_OEs8FwJ8oVw9KXPQ6cq_3lMsVB5v8IKbPTdH4');
+  const token = localStorage.setItem('jwt', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkaWxzaGFuQGV4YW1wbGUuY29tIiwicm9sZXMiOlsiUk9MRV9DVVNUT01FUiIsIlJPTEVfU1lTQURNSU4iXSwiaWF0IjoxNzQ2MjkzNDA2LCJleHAiOjE3NDYyOTcwMDZ9.y2YSFPRSI4PgpFiS-aZK5SIlbralS3EI8bcUxrfBhjw');
 
   useEffect(() => {
     const jwt = localStorage.getItem('jwt');

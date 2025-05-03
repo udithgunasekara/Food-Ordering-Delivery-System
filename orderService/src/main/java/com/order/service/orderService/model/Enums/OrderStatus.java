@@ -1,8 +1,8 @@
 package com.order.service.orderService.model.Enums;
 
 public enum OrderStatus {
-    PENDING,
     PLACED,
+    CONFIRMED,
     PREPARING,
     PACKED,
     OUT_FOR_DELIVERY,

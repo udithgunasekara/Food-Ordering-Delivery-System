@@ -45,19 +45,37 @@ export interface CartItem {
   }[];
 }
 
+export interface Item {
+  itemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  totalPrice: number;
+}
+
 export interface Order {
   id: string;
   customerId: string;
   restaurantId: string;
-  items: CartItem[];
-  status: 'pending' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered' | 'cancelled';
-  subtotal: number;
-  deliveryFee: number;
-  tax: number;
-  total: number;
-  deliveryAddress: string;
-  createdAt: string;
-  estimatedDeliveryTime?: string;
+  items: Item[];
+  totalPrice: number;
+  paymentStatus: 'PAID' | 'UNPAID';
+  orderStatus: 'PLACED' | 'CONFIRMED' | 'PREPARING' | 'PACKED' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+  placeAt: string;
+  updatedAt: string;
+}
+
+export interface Delivery {
+  deliveryId: string;
+  orderDetails: Order;
+  deliveryPersonId: string;
+  customerLongitude: string;
+  customerLatitude: string;
+  restaurantLongitude: string;
+  restaurantLatitude: string;
+  deliveryPersonLongitude: string;
+  deliveryPersonLatitude: string;
+  deliveryStatus: 'PENDING' | 'IN_PROGRESS' | 'DELIVERED' | 'CANCELLED';
 }
 export interface Category {
   id: string;
