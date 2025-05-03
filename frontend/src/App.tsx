@@ -29,6 +29,8 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import RestaurantRegisterPage from './pages/auth/RestaurantRegisterPage';
 
+import RestaurantMenuPage from './pages/customer/RestaurantMenuPage';
+
 // Protected Route Component
 const ProtectedRoute = ({ 
   children, 
@@ -76,7 +78,7 @@ function App() {
               
               {/* Customer Routes */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/restaurant/:id" element={<RestaurantPage />} />
+            {/* //  <Route path="/restaurant/:id" element={<RestaurantPage />} /> */}
               <Route path="/cart" element={
                 <ProtectedRoute allowedRoles={['ROLE_CUSTOMER']}>
                   <CartPage />
@@ -100,6 +102,10 @@ function App() {
                 </ProtectedRoute>
               } />
               
+              <Route path="/restaurant/:id" element={<RestaurantMenuPage />} />
+
+
+
               {/* Delivery Routes */}
               <Route path="/delivery/dashboard" element={
                 <ProtectedRoute allowedRoles={['ROLE_DELIVERY_AGENT']} >

@@ -30,12 +30,11 @@ public class MenuController {
 
 
     // we will give the restaurant id and that will return all menus
-    @GetMapping("/{restId}")
+    @GetMapping("/{restId}") // Uses PATH VARIABLE
     @ResponseStatus(HttpStatus.FOUND)
-    public List<MenuDTO> getAllMenus(@RequestParam String restId) {
+    public List<MenuDTO> getAllMenus(@PathVariable String restId) { // Changed to @PathVariable
         return menuService.getAllMenus(restId);
     }
-
     //we just need to rest id and menu id for deletion
     @DeleteMapping("/{menuId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
