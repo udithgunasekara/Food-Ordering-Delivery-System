@@ -1,17 +1,13 @@
 package com.delivery.service.deliveryService.Service.ServiceIMPL;
 
 
-import com.delivery.service.deliveryService.Client.CustomerClient;
-import com.delivery.service.deliveryService.Client.DriverClient;
+import com.delivery.service.deliveryService.Client.UserClient;
 import com.delivery.service.deliveryService.Client.RestaurantClient;
 import com.delivery.service.deliveryService.DTO.DeliveryDTO;
-import com.delivery.service.deliveryService.Event.CustomerResponse;
-import com.delivery.service.deliveryService.Event.InternalDeliveryPersonResponse;
-import com.delivery.service.deliveryService.Event.OrderEvent;
-import com.delivery.service.deliveryService.Event.RestaurantResponse;
+import com.delivery.service.deliveryService.Event.*;
 import com.delivery.service.deliveryService.Exception.ResourceNotFound;
 import com.delivery.service.deliveryService.Model.Delivery;
-import com.delivery.service.deliveryService.Model.DeliveryStatus;
+import com.delivery.service.deliveryService.Model.Enums.DeliveryStatus;
 import com.delivery.service.deliveryService.Repository.DeliveryRepository;
 import com.delivery.service.deliveryService.Service.DeliveryService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -26,9 +22,11 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static com.delivery.service.deliveryService.Mapper.DeliveryMapper.mapToDelivery;
 import static com.delivery.service.deliveryService.Mapper.DeliveryMapper.mapToDeliveryDTO;
+import static com.delivery.service.deliveryService.Mapper.OrderMapper.mapOrderResponseToOrder;
 
 @Slf4j
 @Service
@@ -37,15 +35,13 @@ public class DeliveryServiceIMPL  implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
 
-    private final DriverClient driverClient;
-
     private final RestaurantClient restaurantClient;
 
-    private final CustomerClient customerClient;
+    private final UserClient userClient;
 
     private final Map<String, InternalDeliveryPersonResponse> deliveryPersonsCache = new HashMap<>();
 
-    private final KafkaTemplate<String, List<InternalDeliveryPersonResponse>> kafkaTemplate;
+    private final KafkaTemplate<String, DeliveryResponse> kafkaTemplate;
 
 
     @PostConstruct
@@ -61,7 +57,7 @@ public class DeliveryServiceIMPL  implements DeliveryService {
     }
 
     public void loadDeliveryPersons() {
-        List<InternalDeliveryPersonResponse> list = driverClient.getAllDeliveryRoles();
+        List<InternalDeliveryPersonResponse> list = userClient.getAllDeliveryRoles();
         deliveryPersonsCache.clear();
         for (InternalDeliveryPersonResponse dto : list) {
             if (dto.getId() != null) {
@@ -86,19 +82,18 @@ public class DeliveryServiceIMPL  implements DeliveryService {
     }
 
     @KafkaListener(topics = "order_placed")
-    public void listenOrder(OrderEvent orderEvent) {
-        log.info("Received order: {}", orderEvent);
+    public void listenOrder(OrderResponse orderResponse) {
+        log.info("Received order: {}", orderResponse);
 
         // Get coordinates for restaurant and customer via REST clients
-        RestaurantResponse restaurantCoords = restaurantClient.getRestaurantCoordinates(orderEvent.getRestaurantId());
-        CustomerResponse customerCoords = customerClient.getCustomerCoordinates(orderEvent.getCustomerId());
+        RestaurantResponse restaurantCoords = restaurantClient.getInternalRestaurant(orderResponse.getRestaurantId());
+        CustomerResponse customerCoords = userClient.getUserByIdInternal(orderResponse.getCustomerId());
+
 
         // Create a new delivery
         DeliveryDTO deliveryDTO = new DeliveryDTO(
-                null,
-                orderEvent.getOrderId(),
-                orderEvent.getCustomerId(),
-                orderEvent.getRestaurantId(),
+                generateUniqueId(),
+                mapOrderResponseToOrder(orderResponse),
                 null,
                 customerCoords.getLongitude(),
                 customerCoords.getLatitude(),
@@ -111,6 +106,29 @@ public class DeliveryServiceIMPL  implements DeliveryService {
 
         createDelivery(deliveryDTO);
 
+    }
+
+    @KafkaListener(topics = "driver-assigned")
+    public void listenForAssignedDriver(AssignedDriverResponse assignedDriverResponse) {
+        log.info("Received assigned driver: {}", assignedDriverResponse);
+        //get assign driver details
+        InternalDeliveryPersonResponse assignedDriverDetails = getDeliveryPersonById(assignedDriverResponse.getId());
+
+        //update delivery
+        DeliveryDTO delivery = getDeliveryById(assignedDriverResponse.getDeliveryId());
+
+        delivery.setDeliveryPersonId(assignedDriverResponse.getId());
+        delivery.setDeliveryPersonLongitude(assignedDriverDetails.getLongitude());
+        delivery.setDeliveryPersonLatitude(assignedDriverDetails.getLatitude());
+        delivery.setDeliveryStatus(DeliveryStatus.IN_PROGRESS);
+
+        updateDelivery(delivery.getDeliveryId(), delivery);
+    }
+
+    @KafkaListener(topics = "delivery_person_added")
+    public void listenForNewDriver(InternalDeliveryPersonResponse internalDeliveryPersonResponse) {
+        log.info("Received new driver: {}", internalDeliveryPersonResponse);
+        deliveryPersonsCache.put(internalDeliveryPersonResponse.getId(), internalDeliveryPersonResponse);
     }
 
     @Override
@@ -132,7 +150,11 @@ public class DeliveryServiceIMPL  implements DeliveryService {
 
         // Send Kafka message if there are nearby drivers
         if (!nearbyDrivers.isEmpty()) {
-            kafkaTemplate.send("nearby_drivers", nearbyDrivers);
+            DeliveryResponse deliveryResponse = new DeliveryResponse();
+            deliveryResponse.setDeliveryId(savedDelivery.getDeliveryId());
+            deliveryResponse.setOrderDetails(savedDelivery.getOrderDetails());
+            deliveryResponse.setDriverDetails(nearbyDrivers);
+            kafkaTemplate.send("nearby_drivers", deliveryResponse);
         }
         // Convert the updated delivery back to DeliveryDTO and return it
         return mapToDeliveryDTO(savedDelivery);
@@ -154,9 +176,7 @@ public class DeliveryServiceIMPL  implements DeliveryService {
         );
 
         // Update the delivery details
-        delivery.setOrderId(deliveryDTO.getOrderId());
-        delivery.setCustomerId(deliveryDTO.getCustomerId());
-        delivery.setRestaurantId(deliveryDTO.getRestaurantId());
+        delivery.setOrderDetails(deliveryDTO.getOrderDetails());
         delivery.setDeliveryPersonId(deliveryDTO.getDeliveryPersonId());
         delivery.setCustomerLongitude(deliveryDTO.getCustomerLongitude());
         delivery.setCustomerLatitude(deliveryDTO.getCustomerLatitude());
@@ -195,6 +215,14 @@ public class DeliveryServiceIMPL  implements DeliveryService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return EARTH_RADIUS * c;
+    }
+
+    public String generateUniqueId() {
+        String id;
+        do {
+            id = UUID.randomUUID().toString();
+        } while (deliveryRepository.existsById(id));
+        return id;
     }
 
 }
