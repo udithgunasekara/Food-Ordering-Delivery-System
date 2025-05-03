@@ -36,7 +36,7 @@ public class OrderServiceIMPL implements OrderService {
 
         // Set default values for oder Id, order status, placeAt date and updatedAt date
         order.setId(generateUniqueId());
-        order.setOrderStatus(OrderStatus.PENDING);
+        order.setOrderStatus(OrderStatus.PLACED);
         order.setPlaceAt(new Date());
         order.setUpdatedAt(new Date());
 

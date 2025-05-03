@@ -28,6 +28,12 @@ public class DeliveryController {
         return ResponseEntity.ok(delivery);
     }
 
+    @GetMapping("/get/order/{orderId}")
+    public ResponseEntity<DeliveryDTO> getDeliveryByOrderId(@PathVariable("orderId") String orderId) {
+        DeliveryDTO delivery = deliveryService.getDeliveryByOrderId(orderId);
+        return ResponseEntity.ok(delivery);
+    }
+
     // Endpoint to update a delivery by ID
     @PutMapping("/update/{deliveryId}")
     public ResponseEntity<DeliveryDTO> updateDelivery(@PathVariable("deliveryId") String deliveryId,

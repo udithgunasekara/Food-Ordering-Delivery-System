@@ -14,7 +14,7 @@ const DeliveryDashboard: React.FC = () => {
   
   // Get orders that are ready for delivery
   const availableOrders = orders.filter(order => 
-    order.status === 'preparing' || order.status === 'confirmed'
+    order.orderStatus === 'PREPARING' || order.orderStatus === 'CONFIRMED'
   );
 
   const handleAcceptOrder = (order: Order) => {

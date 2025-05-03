@@ -1,124 +1,288 @@
-import React, { useState, useEffect } from 'react';
-import { Check, Phone, MessageSquare } from 'lucide-react';
-import { Order } from '../../types';
+import React, { useEffect, useRef, useState } from 'react';
+import { Order, Delivery } from '../../types';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 interface OrderTrackingProps {
   order: Order;
 }
 
+const statusSteps = [
+  { id: 1, status: 'PLACED', label: 'Order Placed', time: '15-30 minutes' },
+  { id: 2, status: 'CONFIRMED', label: 'Order Confirmed', time: '15-30 minutes' },
+  { id: 3, status: 'PREPARING', label: 'Preparing', time: '10-20 minutes' },
+  { id: 4, status: 'PACKED', label: 'Packed', time: '5-10 minutes' },
+  { id: 5, status: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', time: '5-10 minutes' },
+  { id: 6, status: 'DELIVERED', label: 'Delivered', time: 'Order has arrived' }
+];
+
 const OrderTracking: React.FC<OrderTrackingProps> = ({ order }) => {
-  const [remainingTime, setRemainingTime] = useState<number>(30);
-  const [currentStatus, setCurrentStatus] = useState<string>(order.status);
+  const currentStepIndex = statusSteps.findIndex(
+    step => step.status === order.orderStatus.toUpperCase()
+  );
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstance = useRef<any>(null);
+  const directionsRenderer = useRef<any>(null);
+  const [delivery, setDelivery] = useState<Delivery | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Status steps
-  const steps = [
-    { key: 'confirmed', label: 'Order Confirmed' },
-    { key: 'preparing', label: 'Preparing' },
-    { key: 'out-for-delivery', label: 'Out for Delivery' },
-    { key: 'delivered', label: 'Delivered' }
-  ];
+  // Check if driver is assigned
+  const isDriverAssigned = delivery?.deliveryPersonId && 
+                          delivery.deliveryPersonLatitude && 
+                          delivery.deliveryPersonLongitude;
 
-  // Calculate progress based on current status
-  const getCurrentStepIndex = () => {
-    return steps.findIndex(step => step.key === currentStatus);
-  };
-
-  // Calculate progress percentage
-  const getProgressPercentage = () => {
-    const currentIndex = getCurrentStepIndex();
-    if (currentIndex === -1) return 0;
-    return (currentIndex / (steps.length - 1)) * 100;
-  };
-
-  // Simulate order progression
+  // Fetch delivery details
   useEffect(() => {
-    if (['cancelled', 'delivered'].includes(currentStatus)) return;
-
-    const timer = setInterval(() => {
-      setRemainingTime(prev => {
-        if (prev <= 1) {
-          // Move to next status
-          const currentIndex = getCurrentStepIndex();
-          if (currentIndex < steps.length - 1) {
-            setCurrentStatus(steps[currentIndex + 1].key);
-            return 30; // Reset timer for next step
-          }
-          return 0;
+    const fetchDeliveryDetails = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/delivery/get/order/${order.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch delivery details');
         }
-        return prev - 1;
-      });
-    }, 1000);
+        const data: Delivery = await response.json();
+        setDelivery(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        setLoading(false);
+      }
+    };
 
-    return () => clearInterval(timer);
-  }, [currentStatus]);
+    if (order.orderStatus === 'PACKED' || order.orderStatus === 'OUT_FOR_DELIVERY') {
+      fetchDeliveryDetails();
+    }
+  }, [order.id, order.orderStatus]);
+
+  // Initialize the map and draw routes when delivery details are available
+  useEffect(() => {
+    if ((order.orderStatus === 'PACKED' || order.orderStatus === 'OUT_FOR_DELIVERY') && 
+        delivery && 
+        !mapInstance.current && 
+        mapRef.current) {
+      // Load Google Maps script if not already loaded
+      if (!window.google) {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBoJXxxWOMKdexaiud8ImxzzkaHtEIYtds&libraries=places,directions`;
+        script.async = true;
+        script.onload = () => initializeMapAndDrawRoute();
+        document.head.appendChild(script);
+      } else {
+        initializeMapAndDrawRoute();
+      }
+    }
+
+    return () => {
+      // Clean up map instance when component unmounts
+      if (mapInstance.current) {
+        mapInstance.current = null;
+      }
+      if (directionsRenderer.current) {
+        directionsRenderer.current.setMap(null);
+        directionsRenderer.current = null;
+      }
+    };
+  }, [delivery, order.orderStatus]);
+
+  const initializeMapAndDrawRoute = () => {
+    if (!delivery || !mapRef.current || !window.google) return;
+
+    // Parse coordinates
+    const restaurantLocation = {
+      lat: parseFloat(delivery.restaurantLatitude),
+      lng: parseFloat(delivery.restaurantLongitude)
+    };
+
+    const customerLocation = {
+      lat: parseFloat(delivery.customerLatitude),
+      lng: parseFloat(delivery.customerLongitude)
+    };
+
+    const driverLocation = delivery.deliveryPersonLatitude && delivery.deliveryPersonLongitude ? {
+      lat: parseFloat(delivery.deliveryPersonLatitude),
+      lng: parseFloat(delivery.deliveryPersonLongitude)
+    } : null;
+
+    // Initialize map centered between restaurant and customer
+    const bounds = new window.google.maps.LatLngBounds();
+    bounds.extend(restaurantLocation);
+    bounds.extend(customerLocation);
+    if (driverLocation) bounds.extend(driverLocation);
+
+    mapInstance.current = new window.google.maps.Map(mapRef.current, {
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false
+    });
+    mapInstance.current.fitBounds(bounds);
+
+    // Initialize directions renderer
+    directionsRenderer.current = new window.google.maps.DirectionsRenderer({
+      map: mapInstance.current,
+      suppressMarkers: true,
+      preserveViewport: false
+    });
+
+    // Add custom markers
+    new window.google.maps.Marker({
+      position: restaurantLocation,
+      map: mapInstance.current,
+      title: 'Restaurant',
+      icon: {
+        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+      }
+    });
+
+    new window.google.maps.Marker({
+      position: customerLocation,
+      map: mapInstance.current,
+      title: 'Customer',
+      icon: {
+        url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+      }
+    });
+
+    if (driverLocation) {
+      new window.google.maps.Marker({
+        position: driverLocation,
+        map: mapInstance.current,
+        title: 'Driver',
+        icon: {
+          url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+        }
+      });
+
+      // Draw route based on delivery status
+      const directionsService = new window.google.maps.DirectionsService();
+      
+      if (order.orderStatus === 'PACKED') {
+        // Draw route from driver to restaurant
+        directionsService.route(
+          {
+            origin: driverLocation,
+            destination: restaurantLocation,
+            travelMode: window.google.maps.TravelMode.DRIVING
+          },
+          (response: any, status: any) => {
+            if (status === 'OK') {
+              directionsRenderer.current.setDirections(response);
+            }
+          }
+        );
+      } else if (order.orderStatus === 'OUT_FOR_DELIVERY') {
+        // Draw route from restaurant to customer
+        directionsService.route(
+          {
+            origin: restaurantLocation,
+            destination: customerLocation,
+            travelMode: window.google.maps.TravelMode.DRIVING
+          },
+          (response: any, status: any) => {
+            if (status === 'OK') {
+              directionsRenderer.current.setDirections(response);
+            }
+          }
+        );
+      }
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-6">Order Tracking</h2>
-      
-      {/* Progress Bar */}
-      <div className="relative mb-8">
-        <div className="h-2 bg-gray-200 rounded-full">
-          <div 
-            className="h-full bg-green-500 rounded-full transition-all duration-500"
-            style={{ width: `${getProgressPercentage()}%` }}
-          ></div>
+      {/* Map Section - Display only if order is packed or out for delivery */}
+      {(order.orderStatus === 'PACKED' || order.orderStatus === 'OUT_FOR_DELIVERY') && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-4">Delivery Tracking</h3>
+          {loading && <div className="text-center py-8">Loading map...</div>}
+          {error && <div className="text-red-500 text-center py-8">{error}</div>}
+          {!loading && !error && (
+            <div 
+              ref={mapRef} 
+              style={{ height: '300px', width: '100%', borderRadius: '8px' }}
+              className="border border-gray-200"
+            >
+              {/* Map will be rendered here */}
+            </div>
+          )}
         </div>
-        
-        {/* Step Indicators */}
-        <div className="flex justify-between mt-2">
-          {steps.map((step, index) => {
-            const isCompleted = getCurrentStepIndex() >= index;
-            const isCurrent = getCurrentStepIndex() === index;
-            
+      )}
+
+      <h2 className="text-lg font-semibold mb-6">Order Tracking</h2>
+
+      {/* Progress Steps */}
+      <div className="mb-8">
+        <div className="flex justify-between mb-2">
+          {statusSteps.map((step, index) => {
+            const isCompleted = index < currentStepIndex;
+            const isActive = index === currentStepIndex;
             return (
-              <div key={step.key} className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  isCompleted 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-gray-200 text-gray-500'
-                } ${isCurrent ? 'ring-4 ring-green-100' : ''}`}>
-                  {isCompleted ? <Check className="w-5 h-5" /> : index + 1}
-                </div>
-                <span className={`text-sm mt-1 ${isCurrent ? 'font-semibold' : ''}`}>
-                  {step.label}
-                </span>
+              <div
+                key={step.id}
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  isCompleted
+                    ? 'bg-green-500 text-white'
+                    : isActive
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}
+              >
+                {step.id}
               </div>
             );
           })}
         </div>
-      </div>
-      
-      {/* Estimated Time */}
-      <div className="mb-6 text-center">
-        <p className="text-gray-600">Estimated Time</p>
-        <div className="text-3xl font-bold text-orange-500">
-          {currentStatus === 'delivered' 
-            ? 'Delivered!' 
-            : `${remainingTime} minutes`}
+
+        <div className="flex justify-between px-2">
+          {statusSteps.map((step, index) => {
+            const isCompleted = index < currentStepIndex;
+            const isActive = index === currentStepIndex;
+            return (
+              <span
+                key={step.id}
+                className={`text-xs text-center ${
+                  isCompleted
+                    ? 'text-green-700'
+                    : isActive
+                    ? 'text-yellow-700 font-semibold'
+                    : 'text-gray-500'
+                }`}
+                style={{ width: `${100 / statusSteps.length}%` }}
+              >
+                {step.label}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Progress Bar */}
+        <div className="relative mt-4">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200"></div>
+          <div
+            className="absolute top-0 left-0 h-1 bg-green-500 transition-all duration-300"
+            style={{
+              width: `${(currentStepIndex / (statusSteps.length - 1)) * 100}%`
+            }}
+          ></div>
         </div>
       </div>
 
-      {/* Map Placeholder */}
-      {currentStatus === 'out-for-delivery' && (
-        <div className="mb-6 bg-gray-100 h-60 rounded-lg flex items-center justify-center">
-          <p className="text-gray-500">Delivery tracking map would appear here</p>
+      {/* Estimated Time or Searching for Driver */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col items-center">
+          <h3 className="text-sm font-semibold mb-1">
+            {isDriverAssigned ? 'Estimated Time' : 'Driver Status'}
+          </h3>
+          <p className="text-lg font-bold">
+            {isDriverAssigned 
+              ? statusSteps[currentStepIndex]?.time || 'Calculating...'
+              : 'Searching for driver...'}
+          </p>
         </div>
-      )}
-      
-      {/* Contact Options */}
-      {currentStatus !== 'delivered' && (
-        <div className="flex justify-center space-x-4">
-          <button className="flex items-center px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
-            <Phone className="w-5 h-5 mr-2" />
-            Call
-          </button>
-          <button className="flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-            <MessageSquare className="w-5 h-5 mr-2" />
-            Message
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

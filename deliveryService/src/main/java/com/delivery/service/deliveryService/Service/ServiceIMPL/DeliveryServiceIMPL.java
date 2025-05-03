@@ -170,6 +170,16 @@ public class DeliveryServiceIMPL  implements DeliveryService {
     }
 
     @Override
+    public DeliveryDTO getDeliveryByOrderId(String orderId) {
+        Delivery delivery = deliveryRepository.findByOrderDetailsId(orderId);
+        if (delivery == null) {
+            throw new ResourceNotFound("Delivery not found with order id: " + orderId);
+        }
+        // Convert the updated delivery back to DeliveryDTO and return it
+        return mapToDeliveryDTO(delivery);
+    }
+
+    @Override
     public DeliveryDTO updateDelivery(String deliveryId, DeliveryDTO deliveryDTO) {
         Delivery delivery = deliveryRepository.findById(deliveryId).orElseThrow(
                 () -> new ResourceNotFound("Delivery not found with id: " + deliveryId)
