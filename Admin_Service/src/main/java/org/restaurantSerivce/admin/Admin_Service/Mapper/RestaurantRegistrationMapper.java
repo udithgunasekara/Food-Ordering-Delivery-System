@@ -17,9 +17,10 @@ public class RestaurantRegistrationMapper {
                 .ownerFullName(restaurantReg.getOwnerFullName())
                 .ownerEmail(restaurantReg.getOwnerEmail())
                 .ownerContact(restaurantReg.getOwnerContact())
+                .latitude(restaurantReg.getLatitude())
+                .longitude(restaurantReg.getLongitude())
                 .status(restaurantReg.getStatus())
                 .requestedAt(restaurantReg.getRequestedAt())
-                .modifiedAt(restaurantReg.getModifiedAt())
                 .build();
     }
 }

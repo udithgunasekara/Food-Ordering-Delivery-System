@@ -7,8 +7,8 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrderEvent {
-    private String orderId;
+public class AssignedDriverResponse {
+    private String id;
     private String customerId;
-    private String restaurantId;
+    private String deliveryId;
 }

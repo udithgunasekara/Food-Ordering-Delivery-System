@@ -19,4 +19,6 @@ public interface IUserService {
     public List<String> getAllRoles();
     public InternalAdminUserResponseDTO getUserForInternal(String userid);
     public List<InternalDeliveryPersonResponseDTO> getAllDeliveryPersons();
+
+    public InternalAdminUserResponseDTO getUserById(String userid);
 }

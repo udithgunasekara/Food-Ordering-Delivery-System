@@ -45,15 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             final String username = jwtTokenProvider.getUsernameFromToken(token);
             if(username != null){
                 UserDetails userDetails;
-                if (username.equals("internal@system") || username.equals("internal-service")) {
-                    // 🛡️ Create a "fake" internal user without hitting database
-                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_SYSADMIN"));
-                    userDetails = new UserPrinciple("internal-service", "internal", "internal@system", "", authorities);
-                    log.info("Internal service token detected, skipping database lookup");
-                } else {
+//                if (username.equals("internal@system") || username.equals("internal-service")) {
+//                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_SYSADMIN"));
+//                    userDetails = new UserPrinciple("internal-service", "internal", "internal@system", "", authorities);
+//                    log.info("Internal service token detected, skipping database lookup");
+//                } else {
                     // Normal user
                     userDetails = customeUserDetailsService.loadUserByUsername(username);
-                }
+//                }
 
                 if(jwtTokenProvider.checkTokenValidity(token,userDetails)){
                     UsernamePasswordAuthenticationToken authentication =
