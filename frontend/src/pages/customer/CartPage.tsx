@@ -18,23 +18,55 @@ const CartPage: React.FC = () => {
     clearCart
   } = useCart();
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [countryCode, setCountryCode] = useState('+94'); // Default Sri Lanka
   const [showPayment, setShowPayment] = useState(false);
   const navigate = useNavigate();
 
-  const handlePaymentSuccess = (paymentIntent: any) => {
-    // In a real app, this would make an API call to create an order
-    alert('Payment successful! Order placed.');
+  // List of country codes (simplified for example)
+  const countryCodes = [
+    { code: '+94', name: 'Sri Lanka' },
+    { code: '+1', name: 'United States' },
+    { code: '+44', name: 'United Kingdom' },
+    { code: '+91', name: 'India' },
+    { code: '+61', name: 'Australia' },
+  ];
+
+  const handlePaymentSuccess = (paymentResponse: any) => {
+    console.log('Payment successful!', paymentResponse);
+    console.log('Payment details:', {
+      id: paymentResponse.id,
+      status: paymentResponse.status,
+      amount: paymentResponse.amount / 100,
+      created: new Date(paymentResponse.created * 1000).toLocaleString()
+    });
+    
+    //alert(`Payment successful! Order placed. Payment ID: ${paymentResponse.id}`);
     clearCart();
     navigate('/orders');
   };
 
   const handlePaymentError = (error: string) => {
-    alert(`Payment failed: ${error}`);
+    //alert(`Payment failed: ${error}`);
   };
 
   const handleProceedToPayment = () => {
     if (!deliveryAddress.trim()) {
-      alert('Please enter a delivery address');
+      //alert('Please enter a delivery address');
+      return;
+    }
+    if (!customerEmail.trim()) {
+      //alert('Please enter an email address');
+      return;
+    }
+    if (!phoneNumber.trim()) {
+      //alert('Please enter a phone number');
+      return;
+    }
+    // Basic phone number validation (numeric and minimum length)
+    if (!/^\d{7,}$/.test(phoneNumber.replace(/\D/g, ''))) {
+      //alert('Please enter a valid phone number');
       return;
     }
     setShowPayment(true);
@@ -141,6 +173,49 @@ const CartPage: React.FC = () => {
                   
                   {!showPayment ? (
                     <>
+                      <div className="mb-4">
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                          Email Address
+                        </label>
+                        <input
+                          id="email"
+                          type="email"
+                          value={customerEmail}
+                          onChange={(e) => setCustomerEmail(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          placeholder="Enter your email address"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                          Phone Number
+                        </label>
+                        <div className="flex">
+                          <select
+                            value={countryCode}
+                            onChange={(e) => setCountryCode(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          >
+                            {countryCodes.map(({ code, name }) => (
+                              <option key={code} value={code}>
+                                {code} ({name})
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            id="phone"
+                            type="tel"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            className="flex-1 px-3 py-2 border border-l-0 border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            placeholder="Enter your phone number"
+                            required
+                          />
+                        </div>
+                      </div>
+                      
                       <div className="mb-6">
                         <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
                           Delivery Address
@@ -158,18 +233,37 @@ const CartPage: React.FC = () => {
                       
                       <button 
                         onClick={handleProceedToPayment}
-                        disabled={!deliveryAddress.trim()}
+                        disabled={!deliveryAddress.trim() || !customerEmail.trim() || !phoneNumber.trim()}
                         className="w-full py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                       >
                         Proceed to Payment
                       </button>
                     </>
                   ) : (
-                    <PaymentForm
-                      amount={cartTotal}
-                      onSuccess={handlePaymentSuccess}
-                      onError={handlePaymentError}
-                    />
+                    <div>
+                      <div className="mb-4 p-3 bg-gray-50 rounded-md">
+                        <h3 className="font-medium text-sm mb-1">Delivery Information</h3>
+                        <p className="text-sm text-gray-600">{deliveryAddress}</p>
+                        <p className="text-sm text-gray-600 mt-1">{customerEmail}</p>
+                        <p className="text-sm text-gray-600 mt-1">{countryCode}{phoneNumber}</p>
+                      </div>
+                      
+                      <PaymentForm
+                        amount={cartTotal}
+                        onSuccess={handlePaymentSuccess}
+                        onError={handlePaymentError}
+                        deliveryAddress={deliveryAddress}
+                        customerEmail={customerEmail}
+                        customerPhone={`${countryCode}${phoneNumber}`}
+                      />
+                      
+                      <button 
+                        onClick={() => setShowPayment(false)}
+                        className="w-full mt-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                      >
+                        Back to Delivery Information
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

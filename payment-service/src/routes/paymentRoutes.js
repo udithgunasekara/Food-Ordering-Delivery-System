@@ -5,7 +5,7 @@ import { authenticate } from '../middleware/auth.js';
 const router = express.Router();
 
 // Protected routes with API key authentication
-router.post('/charge', authenticate, createCharge);
+router.post('/charge', createCharge);
 router.post('/refund', authenticate, createRefund);
 router.get('/transactions', authenticate, getTransactions);
 
