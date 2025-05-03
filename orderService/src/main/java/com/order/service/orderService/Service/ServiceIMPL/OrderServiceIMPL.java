@@ -116,6 +116,15 @@ public class OrderServiceIMPL implements OrderService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<OrderDTO> getOrdersByResturantId(String restaurantId) {
+        // Find all orders by restaurant ID
+        List<Order> allCustomerOrders = orderRepository.findByRestaurantId(restaurantId);
+        return allCustomerOrders.stream()
+                .map((order) -> mapToOrderDTO(order))
+                .collect(Collectors.toList());
+    }
+
     public String generateUniqueId() {
         String id;
         do {

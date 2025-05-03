@@ -51,4 +51,11 @@ public class OrderController {
         List<OrderDTO> orders = orderService.getOrdersByCustomerId(customerId);
         return ResponseEntity.ok(orders);
     }
+
+    // Endpoint to get all orders by restaurant ID
+    @GetMapping("/getAll/{restaurantId}")
+    public ResponseEntity<List<OrderDTO>> getOrdersByRestaurantId(@PathVariable("restaurantId") String restaurantId) {
+        List<OrderDTO> orders = orderService.getOrdersByResturantId(restaurantId);
+        return ResponseEntity.ok(orders);
+    }
 }
