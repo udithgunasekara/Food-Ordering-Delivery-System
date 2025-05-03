@@ -22,6 +22,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
+import RestaurantMenuPage from './pages/customer/RestaurantMenuPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ 
@@ -65,7 +66,7 @@ function App() {
               
               {/* Customer Routes */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/restaurant/:id" element={<RestaurantPage />} />
+            {/* //  <Route path="/restaurant/:id" element={<RestaurantPage />} /> */}
               <Route path="/cart" element={
                 <ProtectedRoute allowedRoles={['customer']}>
                   <CartPage />
@@ -84,6 +85,10 @@ function App() {
                 </ProtectedRoute>
               } />
               
+              <Route path="/restaurant/:id" element={<RestaurantMenuPage />} />
+
+
+
               {/* Delivery Routes */}
               <Route path="/delivery/dashboard" element={
                 <ProtectedRoute allowedRoles={['delivery']}>
