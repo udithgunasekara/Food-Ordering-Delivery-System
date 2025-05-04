@@ -28,8 +28,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import RestaurantRegisterPage from './pages/auth/RestaurantRegisterPage';
-
-// import RestaurantMenuPage from './pages/customer/RestaurantMenuPage';
+import RestaurantMenuPage from './pages/customer/RestaurantMenuPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ 
@@ -102,7 +101,7 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              {/* <Route path="/restaurant/:id" element={<RestaurantMenuPage />} /> */}
+              <Route path="/restaurant/:id" element={<RestaurantMenuPage />} />
 
 
 

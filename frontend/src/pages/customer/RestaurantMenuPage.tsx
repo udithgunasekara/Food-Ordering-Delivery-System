@@ -228,6 +228,7 @@ const RestaurantMenuPage: React.FC = () => {
     axios.get(`http://localhost:8080/menu/${id}`, axiosConfig)
       .then(response => {
         console.log('API Response:', response.data);
+        localStorage.setItem('restID', id);
         // The response contains an array, so we need to take the first item
         if (Array.isArray(response.data) && response.data.length > 0) {
           setRestaurant(response.data[0]);

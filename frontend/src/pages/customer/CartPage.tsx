@@ -347,8 +347,8 @@ const CartPage: React.FC = () => {
     }
   
     const orderData = {
-      customerId: "CUS-12345", // Replace with actual ID if available
-      restaurantId: "REST-98765", // Replace with actual restaurant ID
+      customerId: "6816b3feaddfe05091081463", 
+      restaurantId: localStorage.getItem('restID'), 
       items: cartItems.map(cartItem => ({
         itemId: cartItem.item.id,
         name: cartItem.item.name,
