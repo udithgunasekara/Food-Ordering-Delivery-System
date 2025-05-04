@@ -17,8 +17,8 @@ const RestaurantDashboard: React.FC = () => {
 
 
   //sessionStorage.setItem('id', );
-  sessionStorage.setItem('restaurantName', "55555");
-  sessionStorage.setItem('restID', "55555");
+  sessionStorage.setItem('restaurantName', "6814fa03fdd54e73981344c7");
+  sessionStorage.setItem('restID', "6814fa03fdd54e73981344c7");
 
   // Filter for orders from this restaurant
   const restaurantOrders = orders.filter(order => order.restaurantId === '1');
