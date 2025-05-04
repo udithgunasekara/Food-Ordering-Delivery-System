@@ -218,8 +218,7 @@
 //       }
 //     },
 //   });
-// };
-import { Kafka } from 'kafkajs';
+// };import { Kafka } from 'kafkajs';
 import { sendEmail } from './emailService.js';
 import { sendSMS } from './smsService.js';
 import { sendWebSocketNotification } from './websocketService.js';
@@ -244,7 +243,8 @@ export const startKafkaConsumer = async () => {
       KAFKA_TOPICS.ORDER_PLACED,
       KAFKA_TOPICS.DELIVERY_ASSIGNED,
       KAFKA_TOPICS.PAYMENT_EVENTS,
-      'nearby_drivers', // Add the nearby_drivers topic
+      KAFKA_TOPICS.REGISTRATION_STATUS,
+      'nearby_drivers',
     ], 
     fromBeginning: true 
   });
@@ -255,7 +255,29 @@ export const startKafkaConsumer = async () => {
         const data = JSON.parse(message.value.toString());
         let notification;
 
-        if (topic === 'nearby_drivers') {
+        if (topic === KAFKA_TOPICS.REGISTRATION_STATUS) {
+          // Validate required fields
+          if (!data.userEmail || !data.restaurantName || !data.restaurantId) {
+            console.error('Missing userEmail, restaurantName, or restaurantId in registration-status event:', data);
+            return;
+          }
+
+          // Send email to user confirming restaurant registration
+          await sendEmail(
+            data.userEmail,
+            'Restaurant Registration Successful',
+            `Congratulations! Your restaurant "${data.restaurantName}" (ID: ${data.restaurantId}) has been successfully registered.`
+          );
+
+          // Save notification
+          notification = new Notification({
+            type: 'email',
+            recipient: data.userEmail,
+            message: `Restaurant ${data.restaurantName} (ID: ${data.restaurantId}) registered`,
+            restaurantId: data.restaurantId,
+          });
+          await notification.save();
+        } else if (topic === 'nearby_drivers') {
           // Validate required fields
           if (!data.deliveryId || !data.orderDetails || !data.DriverDetails) {
             console.error('Missing deliveryId, orderDetails, or DriverDetails in nearby_drivers event:', data);

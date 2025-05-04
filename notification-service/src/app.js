@@ -7,10 +7,14 @@ import { SERVER_PORT } from './config/config.js';
 import { startEureka, stopEureka } from './config/eureka.js';
 import dotenv from 'dotenv';
 import http from 'http';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors());
+
 const server = http.createServer(app);
 app.use(express.json());
 

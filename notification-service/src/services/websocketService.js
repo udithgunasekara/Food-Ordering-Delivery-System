@@ -1,21 +1,30 @@
 import { WebSocketServer } from 'ws';
+import { parse } from 'url';
 
-// Store connected drivers (driverId -> WebSocket)
 const drivers = new Map();
 
-export const initWebSocketServer = (server) => {
-  const wss = new WebSocketServer({ server });
+const initWebSocketServer = (server) => {
+  console.log('Initializing WebSocket server on path /api/notifications');
+  const wss = new WebSocketServer({ path: '/api/notifications', server });
 
   wss.on('connection', (ws, req) => {
-    // Expect driverId to be passed in query or headers
-    const driverId = req.url.split('driverId=')[1];
-    if (!driverId) {
+    console.log('Connection attempt:', req.url);
+    const parsedUrl = parse(req.url, true);
+    if (parsedUrl.pathname !== '/api/notifications') {
+      console.log('Invalid WebSocket path:', parsedUrl.pathname);
+      ws.close(1008, 'Invalid WebSocket path');
+      return;
+    }
+
+    const driverId = parsedUrl.query.driverId;
+    if (!driverId || typeof driverId !== 'string') {
+      console.log('Missing or invalid driverId:', parsedUrl.query);
       ws.close(1008, 'Driver ID required');
       return;
     }
 
     drivers.set(driverId, ws);
-    console.log(`Driver ${driverId} connected`);
+    console.log(`Driver ${driverId} connected to /api/notifications`);
 
     ws.on('close', () => {
       drivers.delete(driverId);
@@ -27,9 +36,13 @@ export const initWebSocketServer = (server) => {
       drivers.delete(driverId);
     });
   });
+
+  wss.on('error', (error) => {
+    console.error('WebSocket server error:', error);
+  });
 };
 
-export const sendWebSocketNotification = (driverId, message) => {
+const sendWebSocketNotification = (driverId, message) => {
   const ws = drivers.get(driverId);
   if (ws && ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(message));
@@ -38,3 +51,5 @@ export const sendWebSocketNotification = (driverId, message) => {
     console.log(`Driver ${driverId} not connected or WebSocket closed`);
   }
 };
+
+export { initWebSocketServer, sendWebSocketNotification };
