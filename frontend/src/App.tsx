@@ -110,9 +110,9 @@ function App() {
               
               {/* Restaurant Routes */}
               <Route path="/restaurant/dashboard" element={
-                <ProtectedRoute allowedRoles={['ROLE_RESTAURANT_ADMIN']}>
+               // <ProtectedRoute allowedRoles={['ROLE_RESTAURANT_ADMIN']}>
                   <RestaurantDashboard />
-                </ProtectedRoute>
+                //</ProtectedRoute>
               } />
               
               <Route path="/restaurant/:id" element={<RestaurantMenuPage />} />

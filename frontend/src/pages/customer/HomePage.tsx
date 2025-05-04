@@ -37,7 +37,7 @@ const HomePage: React.FC = () => {
         const mapped = response.data.map((item: any): Restaurant => ({
           id: item.id,
           name: item.restaurantName,
-          imageUrl: 'https://source.unsplash.com/random/400x300/?restaurant', // temp image
+          imageUrl: 'https://plus.unsplash.com/premium_photo-1675344317686-118cc9f89f8a?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', // temp image
           cuisineType: 'Mixed Cuisine', // temp data
           rating: 4.5, // temp data
           estimatedDeliveryTime: '30-45 min', // temp data

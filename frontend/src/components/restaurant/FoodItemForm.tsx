@@ -136,7 +136,7 @@ const FoodItemForm: React.FC<FoodItemFormProps> = ({ onCancel }) => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8082/menu', {
+      const response = await fetch('http://localhost:8080/menu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
