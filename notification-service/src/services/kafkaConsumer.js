@@ -218,7 +218,8 @@
 //       }
 //     },
 //   });
-// };import { Kafka } from 'kafkajs';
+// };
+import { Kafka } from 'kafkajs';
 import { sendEmail } from './emailService.js';
 import { sendSMS } from './smsService.js';
 import { sendWebSocketNotification } from './websocketService.js';
