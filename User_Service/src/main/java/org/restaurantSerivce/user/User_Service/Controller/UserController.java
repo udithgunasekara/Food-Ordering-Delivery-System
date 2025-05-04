@@ -134,4 +134,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllDeliveryPersons());
     }
 
+    @PostMapping("/internal/restadmin/{userid}")
+    public ResponseEntity<String> addRestAdminToUser(@PathVariable String userid) {
+        log.info("⚠️⚠️add restadmin to user : {} ", userid);
+        userService.setUserToRestaurantAdmin(userid);
+        return ResponseEntity.ok("User promoted to RESTAURANT ADMIN");
+    }
+
 }

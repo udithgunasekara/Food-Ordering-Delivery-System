@@ -13,6 +13,7 @@ public class RestaurantRegistrationMapper {
                 .restaurantName(restaurantReg.getRestaurantName())
                 .contactPhone(restaurantReg.getContactPhone())
                 .address(restaurantReg.getAddress())
+                .ownerId(restaurantReg.getOwnerId())
                 .contactEmail(restaurantReg.getContactEmail())
                 .ownerFullName(restaurantReg.getOwnerFullName())
                 .ownerEmail(restaurantReg.getOwnerEmail())

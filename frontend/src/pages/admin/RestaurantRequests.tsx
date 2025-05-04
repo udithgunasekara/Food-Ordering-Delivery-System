@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';// Update with correct import path
+import { useAuth } from '../../context/AuthContext';
 
 interface Restaurant {
   id: string;
@@ -22,6 +22,7 @@ const RestaurantRequests: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [updatingRestaurants, setUpdatingRestaurants] = useState<Record<string, boolean>>({});
   const { currentUser } = useAuth();
 
   const fetchRestaurants = async () => {
@@ -67,10 +68,13 @@ const RestaurantRequests: React.FC = () => {
         return;
       }
       
+      // Set the loading state for this specific restaurant
+      setUpdatingRestaurants(prev => ({ ...prev, [restaurantId]: true }));
+      
       // Determine the API endpoint based on the selected action
       const endpoint = newStatus === 'APPROVED' 
-        ? `http://localhost:8082/api/admin/approve/${restaurantId}`
-        : `http://localhost:8082/api/admin/reject/${restaurantId}`;
+        ? `http://localhost:8080/api/admin/approve/${restaurantId}`
+        : `http://localhost:8080/api/admin/reject/${restaurantId}`;
 
       const response = await fetch(endpoint, {
         method: 'PUT', // Assuming PUT method for status update
@@ -99,6 +103,9 @@ const RestaurantRequests: React.FC = () => {
     } catch (error) {
       console.error(`Error updating restaurant status:`, error);
       setError(`Failed to update restaurant status. Please try again.`);
+    } finally {
+      // Remove the loading state for this restaurant
+      setUpdatingRestaurants(prev => ({ ...prev, [restaurantId]: false }));
     }
   };
 
@@ -217,31 +224,42 @@ const RestaurantRequests: React.FC = () => {
                             )}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm">
-                            {restaurant.status === 'PENDING' && (
-                              <select
-                                onChange={(e) => handleStatusChange(restaurant.id, e.target.value)}
-                                className="rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                                defaultValue=""
-                              >
-                                <option value="" disabled>Select action</option>
-                                <option value="APPROVED">Approve</option>
-                                <option value="REJECTED">Reject</option>
-                              </select>
-                            )}
-                            {restaurant.status === 'REJECTED' && (
-                              <select
-                                onChange={(e) => handleStatusChange(restaurant.id, e.target.value)}
-                                className="rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
-                                defaultValue="REJECTED"
-                              >
-                                <option value="REJECTED">Rejected</option>
-                                <option value="APPROVED">Approve</option>
-                              </select>
-                            )}
-                            {restaurant.status === 'APPROVED' && (
-                              <span className="text-gray-500 italic">
-                                Approved
-                              </span>
+                            {updatingRestaurants[restaurant.id] ? (
+                              <div className="flex items-center">
+                                <div className="w-5 h-5 border-t-2 border-r-2 border-b-2 border-orange-500 rounded-full animate-spin mr-2"></div>
+                                <span className="text-orange-500 text-sm">Updating...</span>
+                              </div>
+                            ) : (
+                              <>
+                                {restaurant.status === 'PENDING' && (
+                                  <select
+                                    onChange={(e) => handleStatusChange(restaurant.id, e.target.value)}
+                                    className="rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                                    defaultValue=""
+                                    disabled={updatingRestaurants[restaurant.id]}
+                                  >
+                                    <option value="" disabled>Select action</option>
+                                    <option value="APPROVED">Approve</option>
+                                    <option value="REJECTED">Reject</option>
+                                  </select>
+                                )}
+                                {restaurant.status === 'REJECTED' && (
+                                  <select
+                                    onChange={(e) => handleStatusChange(restaurant.id, e.target.value)}
+                                    className="rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                                    defaultValue="REJECTED"
+                                    disabled={updatingRestaurants[restaurant.id]}
+                                  >
+                                    <option value="REJECTED">Rejected</option>
+                                    <option value="APPROVED">Approve</option>
+                                  </select>
+                                )}
+                                {restaurant.status === 'APPROVED' && (
+                                  <span className="text-gray-500 italic">
+                                    Approved
+                                  </span>
+                                )}
+                              </>
                             )}
                           </td>
                         </tr>

@@ -1,24 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { Building2, User, Mail, Lock, MapPin, Phone } from 'lucide-react';
+import { Building2, User, Mail, MapPin, Phone } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const RestaurantRegisterPage: React.FC = () => {
-  const { registerRestaurant } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     restaurantName: '',
-    ownerName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
+    ownerFullName: '',
+    ownerEmail: '',
+    ownerContact: '',
+    contactEmail: '',
+    contactPhone: '',
     address: '',
-    phone: '',
-    cuisineType: '',
-    operatingHours: '',
+    latitude: '',
+    longitude: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  useEffect(() => {
+    // Get geolocation when component mounts
+    getCurrentLocation();
+  }, []);
+
+  const getCurrentLocation = () => {
+    setLoadingLocation(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData({
+            ...formData,
+            latitude: position.coords.latitude.toString(),
+            longitude: position.coords.longitude.toString(),
+          });
+          setLoadingLocation(false);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          setError("Failed to get your location. Please try again.");
+          setLoadingLocation(false);
+        }
+      );
+    } else {
+      setError("Geolocation is not supported by your browser.");
+      setLoadingLocation(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -32,31 +62,43 @@ const RestaurantRegisterPage: React.FC = () => {
     setError(null);
     setSuccess(null);
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
     try {
       const restaurantData = {
-        name: formData.restaurantName,
-        ownerName: formData.ownerName,
-        email: formData.email,
-        password: formData.password,
+        restaurantName: formData.restaurantName,
+        contactEmail: formData.contactEmail,
+        contactPhone: formData.contactPhone,
         address: formData.address,
-        phone: formData.phone,
-        cuisineType: formData.cuisineType,
-        operatingHours: formData.operatingHours,
-        role: 'restaurant',
+        ownerEmail: formData.ownerEmail,
+        ownerFullName: formData.ownerFullName,
+        ownerContact: formData.ownerContact,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude)
       };
 
-      await registerRestaurant(restaurantData);
-      setSuccess('Restaurant registration submitted successfully! Awaiting admin approval.');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      const response = await axios.post(
+        'http://localhost:8080/api/admin/register', 
+        restaurantData
+      );
+
+      if (response.data && response.data.id) {
+        setSuccess(`Restaurant registration successful! Your restaurant ID is ${response.data.id}`);
+        
+        toast.success(`Your restaurant registration is done under ID ${response.data.id}`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+        
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to register restaurant');
+      setError(err.response?.data?.message || 'Failed to register restaurant');
     }
   };
 
@@ -109,84 +151,102 @@ const RestaurantRegisterPage: React.FC = () => {
               </div>
             </div>
             <div>
-              <label htmlFor="ownerName" className="sr-only">
-                Owner Name
+              <label htmlFor="ownerFullName" className="sr-only">
+                Owner Full Name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="ownerName"
-                  name="ownerName"
+                  id="ownerFullName"
+                  name="ownerFullName"
                   type="text"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                  placeholder="Owner Name"
-                  value={formData.ownerName}
+                  placeholder="Owner Full Name"
+                  value={formData.ownerFullName}
                   onChange={handleChange}
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="ownerEmail" className="sr-only">
+                Owner Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="email"
-                  name="email"
+                  id="ownerEmail"
+                  name="ownerEmail"
                   type="email"
                   autoComplete="email"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
-                  value={formData.email}
+                  placeholder="Owner Email"
+                  value={formData.ownerEmail}
                   onChange={handleChange}
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
+              <label htmlFor="ownerContact" className="sr-only">
+                Owner Contact
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Phone className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
+                  id="ownerContact"
+                  name="ownerContact"
+                  type="tel"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                  value={formData.password}
+                  placeholder="Owner Contact Phone"
+                  value={formData.ownerContact}
                   onChange={handleChange}
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
+              <label htmlFor="contactEmail" className="sr-only">
+                Restaurant Contact Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
+                  id="contactEmail"
+                  name="contactEmail"
+                  type="email"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                  placeholder="Confirm Password"
-                  value={formData.confirmPassword}
+                  placeholder="Restaurant Contact Email"
+                  value={formData.contactEmail}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="contactPhone" className="sr-only">
+                Restaurant Contact Phone
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="contactPhone"
+                  name="contactPhone"
+                  type="tel"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Restaurant Contact Phone"
+                  value={formData.contactPhone}
                   onChange={handleChange}
                 />
               </div>
@@ -205,68 +265,57 @@ const RestaurantRegisterPage: React.FC = () => {
                   type="text"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                  placeholder="Address"
+                  placeholder="Restaurant Address"
                   value={formData.address}
                   onChange={handleChange}
                 />
               </div>
             </div>
-            <div>
-              <label htmlFor="phone" className="sr-only">
-                Phone
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="latitude" className="sr-only">
+                  Latitude
+                </label>
                 <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  required
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                  placeholder="Phone"
-                  value={formData.phone}
-                  onChange={handleChange}
+                  id="latitude"
+                  name="latitude"
+                  type="text"
+                  readOnly
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Latitude"
+                  value={loadingLocation ? "Loading..." : formData.latitude}
+                />
+              </div>
+              <div>
+                <label htmlFor="longitude" className="sr-only">
+                  Longitude
+                </label>
+                <input
+                  id="longitude"
+                  name="longitude"
+                  type="text"
+                  readOnly
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                  placeholder="Longitude"
+                  value={loadingLocation ? "Loading..." : formData.longitude}
                 />
               </div>
             </div>
-            <div>
-              <label htmlFor="cuisineType" className="sr-only">
-                Cuisine Type
-              </label>
-              <input
-                id="cuisineType"
-                name="cuisineType"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                placeholder="Cuisine Type (e.g., Italian, Chinese)"
-                value={formData.cuisineType}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="operatingHours" className="sr-only">
-                Operating Hours
-              </label>
-              <input
-                id="operatingHours"
-                name="operatingHours"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
-                placeholder="Operating Hours (e.g., 9AM-9PM)"
-                value={formData.operatingHours}
-                onChange={handleChange}
-              />
-            </div>
           </div>
 
-          <div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={getCurrentLocation}
+              className="group relative w-1/3 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gray-500 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              disabled={loadingLocation}
+            >
+              {loadingLocation ? "Getting Location..." : "Get Location"}
+            </button>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              className="group relative w-2/3 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              disabled={loadingLocation || !formData.latitude || !formData.longitude}
             >
               Register Restaurant
             </button>

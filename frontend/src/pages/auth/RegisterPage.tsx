@@ -17,6 +17,8 @@ const RegisterPage: React.FC = () => {
     country: ''
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,9 +30,32 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your registration logic here
-    // On success, navigate to login page
-    navigate('/login');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('http://localhost:8080/api/users/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      // Registration successful
+      setTimeout(() => {
+        setIsLoading(false);
+        navigate('/login');
+      }, 1000); // Small delay to ensure data is saved before redirecting
+    } catch (err) {
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+    }
   };
 
   return (
@@ -52,6 +77,11 @@ const RegisterPage: React.FC = () => {
 
       <div className="mt-8 max-w-md mx-auto">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-300 rounded">
+              {error}
+            </div>
+          )}
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-6">
               <div>
@@ -229,9 +259,10 @@ const RegisterPage: React.FC = () => {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                disabled={isLoading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-orange-300"
               >
-                Register
+                {isLoading ? 'Registering...' : 'Register'}
               </button>
             </div>
           </form>

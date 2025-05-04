@@ -205,6 +205,14 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
+    public void setUserToRestaurantAdmin(String userid) {
+        User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
+//        user.setRoles(assignRole(user,RoleType.ROLE_SYSADMIN.toString()));
+        assignRole(user,RoleType.ROLE_RESTAURANT_ADMIN.toString());
+        userRepository.save(user);
+    }
+
+    @Override
     public List<String> getAllRoles() {
         return Arrays.stream(RoleType.values()).map(Enum::name).toList();
     }

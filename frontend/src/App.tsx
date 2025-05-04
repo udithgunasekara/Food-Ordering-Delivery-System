@@ -4,6 +4,8 @@ import { Elements } from '@stripe/react-stripe-js';
 import { stripePromise } from './config/stripe';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Customer Pages
 import HomePage from './pages/customer/HomePage';
@@ -69,6 +71,18 @@ function App() {
     <Router>
       <AuthProvider>
         <CartProvider>
+        <ToastContainer
+                  position="top-right"
+                  autoClose={5000}
+                  hideProgressBar={false}
+                  newestOnTop
+                  closeOnClick
+                  rtl={false}
+                  pauseOnFocusLoss
+                  draggable
+                  pauseOnHover
+                  theme="light"
+                />
           <Elements stripe={stripePromise}>
             <Routes>
               {/* Auth Routes */}
