@@ -34,11 +34,11 @@ export const getNotifications = async (req, res) => {
 };
 
 export const acceptOrder = async (req, res) => {
-  const { driverId, orderId, driverDetails } = req.body;
+  const { driverId, orderId, deliveryId, driverDetails } = req.body;
 
   try {
-    if (!driverId || !orderId || !driverDetails) {
-      return res.status(400).json({ error: 'Missing driverId, orderId, or driverDetails' });
+    if (!driverId || !orderId || !deliveryId || !driverDetails) {
+      return res.status(400).json({ error: 'Missing driverId, orderId, deliveryId, or driverDetails' });
     }
 
     // Publish driver selection to Kafka
@@ -51,11 +51,13 @@ export const acceptOrder = async (req, res) => {
       message: `Driver ${driverId} accepted order #${orderId}`,
       orderId,
       driverId,
+      deliveryId,
     });
     await notification.save();
 
     res.status(200).json({ message: 'Order accepted and notified' });
   } catch (error) {
+    console.error('Error in acceptOrder:', error);
     res.status(500).json({ error: 'Failed to accept order' });
   }
 };

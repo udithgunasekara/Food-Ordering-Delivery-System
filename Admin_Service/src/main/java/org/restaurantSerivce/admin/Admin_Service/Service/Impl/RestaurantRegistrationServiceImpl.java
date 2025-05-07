@@ -17,7 +17,10 @@ import org.restaurantSerivce.admin.Admin_Service.Model.Enums.RestaurantStatus;
 import org.restaurantSerivce.admin.Admin_Service.Model.RestaurantRegistration;
 //import org.restaurantSerivce.admin.Admin_Service.Security.InternalTokenGenerator;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -32,10 +35,9 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
 //    private final InternalTokenGenerator internalTokenGenerator;
     private final UserServiceClientInterface userServiceClient;
     private final AdminRepository adminRepository;
-    private final KafkaProducerService kafkaProducerService;
-
-
+    private final KafkaTemplate<String,RestaurantStatusNotification> kafkaTemplate;
     @Override
+    @Transactional
     public RestaurantRequestResponseDTO registerRestaurant(RestaurantRegistrationRequestDTO requestDTO) {
         log.info("request recieved with restaurant registration request");
         try {
@@ -60,6 +62,9 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
                         .build();
 
                  RestaurantRegistration savedRestaurant = adminRepository.save(registrationRequest);
+                log.info("⚠️⚠️assigning role restaurant admin to user {} based on restaurant {}", user.getId(), savedRestaurant.getId());
+                ResponseEntity<String> response2 = userServiceClient.addRestAdminToUser(user.getId());
+                log.info("⚠️⚠️restaurant admin role assigned and returned the response : {}", response2.getBody());
 
                 // Map to your response DTO
                 return (RestaurantRegistrationMapper.RestRegistrationToResponseDTO(savedRestaurant));
@@ -137,31 +142,35 @@ public class RestaurantRegistrationServiceImpl implements RestaurantRegistration
 
     public String approveRestaurantStatus(String restaurantId) {
         RestaurantRegistration restaurant = findRestaurantOrThrow(restaurantId);
+        log.info("restaurat with id {} is approved", restaurant.getId());
         updateRestaurantStatus(restaurantId, "approved");
-        kafkaProducerService.sendRestaurantStatusNotification(
+        kafkaTemplate.send("registration-status",
                 RestaurantStatusNotification.builder()
-                        .userId(restaurant.getOwnerId())
-                        .restaurantId(restaurantId)
-                        .restaurantName(restaurant.getRestaurantName())
-                        .message("Your restaurant registration request has been APPROVED.")
-                        .time(LocalDateTime.now())
-                        .build()
+                    .userId(restaurant.getOwnerId())
+                    .restaurantId(restaurantId)
+                    .restaurantName(restaurant.getRestaurantName())
+                    .message("Your restaurant registration request has been APPROVED.")
+                    .time(LocalDateTime.now())
+                    .build()
         );
         return "Successfully APPEOVED restaurant status";
     }
 
     public String rejectRestaurantStatus(String restaurantId) {
         RestaurantRegistration restaurant = findRestaurantOrThrow(restaurantId);
+        log.info("restaurat with id {} is rejected", restaurant.getId());
         updateRestaurantStatus(restaurantId, "rejected");
-        kafkaProducerService.sendRestaurantStatusNotification(
+        kafkaTemplate.send("registration-status",
                 RestaurantStatusNotification.builder()
                         .userId(restaurant.getOwnerId())
                         .restaurantId(restaurantId)
+                        .userEmail(restaurant.getOwnerEmail())
                         .restaurantName(restaurant.getRestaurantName())
                         .message("Your restaurant registration request has been REJECTED.")
                         .time(LocalDateTime.now())
                         .build()
         );
+
         return "Successfully REJECTED restaurant status";
     }
 

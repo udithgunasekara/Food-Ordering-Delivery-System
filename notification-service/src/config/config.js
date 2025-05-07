@@ -25,4 +25,5 @@ export const KAFKA_TOPICS = {
   ORDER_PLACED: 'order-placed',
   DELIVERY_ASSIGNED: 'delivery-assigned',
   PAYMENT_EVENTS: 'payment-events',
+  REGISTRATION_STATUS: 'registration-status',
 };

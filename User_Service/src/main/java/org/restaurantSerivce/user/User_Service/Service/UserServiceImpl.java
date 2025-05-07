@@ -2,7 +2,7 @@ package org.restaurantSerivce.user.User_Service.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.restaurantSerivce.user.User_Service.DTO.KafkaMessage.DeliveryPersonAddedNotification;
+import org.restaurantSerivce.user.User_Service.DTO.KafkaMessage.InternalDeliveryPersonResponse;
 import org.restaurantSerivce.user.User_Service.DTO.Request.UserRequestDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalAdminUserResponseDTO;
 import org.restaurantSerivce.user.User_Service.DTO.Response.InternalResponse.InternalDeliveryPersonResponseDTO;
@@ -14,6 +14,7 @@ import org.restaurantSerivce.user.User_Service.Model.Enums.RoleType;
 import org.restaurantSerivce.user.User_Service.Model.User;
 import org.restaurantSerivce.user.User_Service.Repository.UserRepository;
 import org.restaurantSerivce.user.User_Service.Service.base.IUserService;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +31,7 @@ public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final KafkaProducerService kafkaProducerService;
+    private final KafkaTemplate<String, InternalDeliveryPersonResponse> kafkaTemplate;
 
     @Override
     public UserResponseDTO registerUser(UserRequestDTO request) {
@@ -161,16 +162,17 @@ public class UserServiceImpl implements IUserService {
         User savedUser = userRepository.save(user);
         if(roleTypes.contains(RoleType.ROLE_DELIVERY_AGENT)){
             log.info("message generated to kafka topic");
-            kafkaProducerService.setDeliveryPersonAddedMessage(
-                    DeliveryPersonAddedNotification.builder()
-                            .id(user.getId())
-                            .email(user.getEmail())
-                            .firstName(user.getFirstName())
-                            .lastName(user.getLastName())
-                            .phone(user.getPhone())
-                            .latitude(user.getLatitude())
-                            .longitude(user.getLongitude())
-                            .build()
+
+            kafkaTemplate.send("delivery_person_added",
+                    InternalDeliveryPersonResponse.builder()
+                        .email(user.getEmail())
+                        .id(user.getId())
+                        .firstName(user.getFirstName())
+                        .lastName(user.getLastName())
+                        .phone(user.getPhone())
+                        .latitude(user.getLatitude())
+                        .longitude(user.getLongitude())
+                        .build()
             );
         }
         return UserMapper.userToUserResponseDTO(savedUser);
@@ -199,6 +201,14 @@ public class UserServiceImpl implements IUserService {
         User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
 //        user.setRoles(assignRole(user,RoleType.ROLE_SYSADMIN.toString()));
         assignRole(user,RoleType.ROLE_SYSADMIN.toString());
+        userRepository.save(user);
+    }
+
+    @Override
+    public void setUserToRestaurantAdmin(String userid) {
+        User user = userRepository.findById(userid).orElseThrow(() -> new ResourceNotFoundException("User","userid",userid));
+//        user.setRoles(assignRole(user,RoleType.ROLE_SYSADMIN.toString()));
+        assignRole(user,RoleType.ROLE_RESTAURANT_ADMIN.toString());
         userRepository.save(user);
     }
 

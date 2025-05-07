@@ -17,6 +17,7 @@ public interface IUserService {
     public UserResponseDTO setUserRoles(String userid, List<String> roles);
     public void setUserToSysAdmin(String userid);
     public List<String> getAllRoles();
+    public void setUserToRestaurantAdmin(String userid);
     public InternalAdminUserResponseDTO getUserForInternal(String userid);
     public List<InternalDeliveryPersonResponseDTO> getAllDeliveryPersons();
 

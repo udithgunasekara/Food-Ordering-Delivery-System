@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.post('/send', auth, sendNotification);
 router.get('/', auth, getNotifications);
-router.post('/accept-order', auth, acceptOrder);
+router.post('/accept-order', acceptOrder);
 
 export default router;

@@ -14,4 +14,6 @@ public interface OrderService {
     void deleteOrder(String orderId);
 
     List<OrderDTO> getOrdersByCustomerId(String customerId);
+
+    List<OrderDTO> getOrdersByResturantId(String restaurantId);
 }

@@ -36,7 +36,7 @@ public class OrderServiceIMPL implements OrderService {
 
         // Set default values for oder Id, order status, placeAt date and updatedAt date
         order.setId(generateUniqueId());
-        order.setOrderStatus(OrderStatus.PENDING);
+        order.setOrderStatus(OrderStatus.PLACED);
         order.setPlaceAt(new Date());
         order.setUpdatedAt(new Date());
 
@@ -111,6 +111,15 @@ public class OrderServiceIMPL implements OrderService {
     public List<OrderDTO> getOrdersByCustomerId(String customerId) {
         // Find all orders by customer ID
         List<Order> allCustomerOrders = orderRepository.findByCustomerId(customerId);
+        return allCustomerOrders.stream()
+                .map((order) -> mapToOrderDTO(order))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<OrderDTO> getOrdersByResturantId(String restaurantId) {
+        // Find all orders by restaurant ID
+        List<Order> allCustomerOrders = orderRepository.findByRestaurantId(restaurantId);
         return allCustomerOrders.stream()
                 .map((order) -> mapToOrderDTO(order))
                 .collect(Collectors.toList());

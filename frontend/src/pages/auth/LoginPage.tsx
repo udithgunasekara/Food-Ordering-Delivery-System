@@ -8,14 +8,40 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [multipleRoles, setMultipleRoles] = useState<string[]>([]);
+  const { login, setCurrentRole } = useAuth();
   const navigate = useNavigate();
+
+  const redirectToDashboard = (role: string) => {
+
+
+    console.log("Received role:", role, "and redirecting to page:", role);
+    setCurrentRole(role); // Set the current role in context
+
+
+    setTimeout(() => {
+      if (role === 'ROLE_SYSADMIN') {
+        console.log("Redirecting to admin dashboard");
+        navigate('/admin/dashboard');
+      } else if (role === 'ROLE_RESTAURANT_ADMIN') {
+        console.log("redirecting to restaurant admin dashboard");
+        navigate('/restaurant/dashboard');
+      } else if (role === 'ROLE_DELIVERY_AGENT') {
+        console.log("redirecting to delivery agent dashboard");
+        navigate('/delivery/dashboard');
+      } else {
+        console.log("redirecting to home page");
+        navigate('/');
+      }
+    }, 100);
+
+
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
     try {
       // For demo purposes, use specific emails to log in as different user types
       if (!email.includes('@')) {
@@ -28,22 +54,41 @@ const LoginPage: React.FC = () => {
       if (!success) {
         throw new Error('Invalid login credentials');
       }
+
+      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const roles:string[] = user.role || [];
+      console.log("User roles:", roles);
       
-      // Redirect based on user role
-      if (email.includes('admin')) {
-        navigate('/admin/dashboard');
-      } else if (email.includes('restaurant')) {
-        navigate('/restaurant/dashboard');
-      } else if (email.includes('driver')) {
-        navigate('/delivery/dashboard');
-      } else {
-        navigate('/');
+
+      if(roles.length ===1 ){
+        redirectToDashboard(roles[0]);
+      }else{
+        setMultipleRoles(roles);
       }
+      
+      // // Redirect based on user role
+      // if (email.includes('admin')) {
+      //   navigate('/admin/dashboard');
+      // } else if (email.includes('restaurant')) {
+      //   navigate('/restaurant/dashboard');
+      // } else if (email.includes('driver')) {
+      //   navigate('/delivery/dashboard');
+      // } else {
+      //   navigate('/');
+      // }
+
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
+  };
+
+
+  const handleRoleSelection = (selected: string) => {
+    console.log(selected + " selected");
+    redirectToDashboard(selected); 
   };
 
   return (
@@ -57,7 +102,7 @@ const LoginPage: React.FC = () => {
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
-          <Link to="/signup" className="font-medium text-orange-500 hover:text-orange-400">
+          <Link to="/register" className="font-medium text-orange-500 hover:text-orange-400">
             create a new account
           </Link>
         </p>
@@ -80,7 +125,7 @@ const LoginPage: React.FC = () => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                {/* <input
                   id="email"
                   name="email"
                   type="email"
@@ -90,6 +135,17 @@ const LoginPage: React.FC = () => {
                   className="block w-full pl-10 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   placeholder="you@example.com"
                   required
+                /> */}
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full pl-10 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="you@example.com"
                 />
               </div>
             </div>
@@ -102,7 +158,7 @@ const LoginPage: React.FC = () => {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
-                <input
+                {/* <input
                   id="password"
                   name="password"
                   type="password"
@@ -112,27 +168,17 @@ const LoginPage: React.FC = () => {
                   className="block w-full pl-10 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   placeholder="••••••••"
                   required
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+                /> */}
                 <input
-                  id="remember_me"
-                  name="remember_me"
-                  type="checkbox"
-                  className="h-4 w-4 text-orange-500 focus:ring-orange-500 border-gray-300 rounded"
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="block w-full pl-10 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="••••••••"
                 />
-                <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a href="#" className="font-medium text-orange-500 hover:text-orange-400">
-                  Forgot your password?
-                </a>
               </div>
             </div>
 
@@ -159,52 +205,23 @@ const LoginPage: React.FC = () => {
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo accounts</span>
-              </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('john@example.com');
-                  setPassword('password');
-                }}
-                className="py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                Customer: john@example.com
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('owner@burgerpalace.com');
-                  setPassword('password');
-                }}
-                className="py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                Restaurant: owner@burgerpalace.com
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('driver@delivery.com');
-                  setPassword('password');
-                }}
-                className="py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                Delivery: driver@delivery.com
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('admin@foodexpress.com');
-                  setPassword('password');
-                }}
-                className="py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              >
-                Admin: admin@foodexpress.com
-              </button>
+            {multipleRoles.length > 1 && (
+              <div className="mt-6 space-y-2">
+                <p className="text-sm text-gray-600 dark:text-gray-300">Select your role:</p>
+                {multipleRoles.map((role) => (
+                  <button
+                    key={role}
+                    onClick={() => handleRoleSelection(role)}
+                    className="w-full border py-2 px-4 rounded bg-white dark:bg-gray-700 text-sm text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    Continue as {role.replace('ROLE_', '').replace('_', ' ').toLowerCase()}
+                  </button>
+                ))}
+              </div>
+            )}
             </div>
           </div>
         </div>

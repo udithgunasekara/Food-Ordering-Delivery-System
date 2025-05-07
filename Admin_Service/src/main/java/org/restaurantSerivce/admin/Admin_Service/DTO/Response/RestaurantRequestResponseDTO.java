@@ -19,6 +19,7 @@ public class RestaurantRequestResponseDTO {
     private String contactEmail;
     private String contactPhone;
     private String address;
+    private String ownerId;
     private String ownerEmail;
     private String ownerFullName;
     private String ownerContact;

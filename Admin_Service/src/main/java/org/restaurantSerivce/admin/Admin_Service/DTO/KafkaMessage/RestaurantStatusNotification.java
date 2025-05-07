@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class RestaurantStatusNotification {
     private String userId;
     private String restaurantId;
+    private String userEmail;
     private String restaurantName;
     private String message;
     private LocalDateTime time;

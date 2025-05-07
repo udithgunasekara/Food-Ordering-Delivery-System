@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Settings, LogOut } from 'lucide-react';
 import Header from '../../components/common/Header';
@@ -6,33 +7,67 @@ import Footer from '../../components/common/Footer';
 import RestaurantStats from '../../components/restaurant/RestaurantStats';
 import OrderCard from '../../components/restaurant/OrderCard';
 import FoodItemForm from '../../components/restaurant/FoodItemForm';
-import { orders } from '../../data/mockData';
-import { Order, FoodItem } from '../../types';
+import { FoodItem } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
 const RestaurantDashboard: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const { logout } = useAuth();
 
-
-  //sessionStorage.setItem('id', );
-  sessionStorage.setItem('restaurantName', "55555");
-  sessionStorage.setItem('restID', "55555");
-
-  // Filter for orders from this restaurant
-  const restaurantOrders = orders.filter(order => order.restaurantId === '1');
+  const restaurantId = sessionStorage.getItem('restID') || "6814ecaf4025e84bc778108c";
   
-  // Group orders by status
+  useEffect(() => {
+    // Fetch orders from API
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        // Fetch orders from the real API endpoint
+        const response = await fetch(`http://localhost:8080/api/order/getAll/restaurant/6814ecaf4025e84bc778108c`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch orders: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setOrders(data);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        alert('Failed to load orders. Please refresh the page to try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+    
+    // Set up a polling interval to periodically refresh orders
+    const intervalId = setInterval(fetchOrders, 30000); // Refresh every 30 seconds
+    
+    // Clean up the interval when component unmounts
+    return () => clearInterval(intervalId);
+  }, [restaurantId]);
+
+  // Filter restaurant orders (not needed if API already filters by restaurant)
+  const restaurantOrders = orders.filter(order => order.restaurantId === restaurantId);
+  
+  // Group orders by status based on the complete OrderStatus enum
   const pendingOrders = restaurantOrders.filter(order => 
-    order.status === 'pending' || order.status === 'confirmed'
+    order.orderStatus === 'PLACED' || order.orderStatus === 'CONFIRMED'
   );
+  
   const activeOrders = restaurantOrders.filter(order => 
-    order.status === 'preparing' || order.status === 'out-for-delivery'
+    order.orderStatus === 'PREPARING' || order.orderStatus === 'PACKED'
   );
+  
   const completedOrders = restaurantOrders.filter(order => 
-    order.status === 'delivered' || order.status === 'cancelled'
+    order.orderStatus === 'OUT_FOR_DELIVERY' || order.orderStatus === 'DELIVERED'
   );
+
+  // Cancelled orders are not shown in any of the three main sections
 
   const handleOrderClick = (order: Order) => {
     setSelectedOrder(order);
@@ -42,6 +77,118 @@ const RestaurantDashboard: React.FC = () => {
     // In a real app, this would make an API call to add the item
     alert('Item added successfully!');
     setIsAddingItem(false);
+  };
+
+  // Function to update order status
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      setUpdatingOrderId(orderId);
+      
+      // Find the order by ID
+      const orderToUpdate = orders.find(order => order.id === orderId);
+      
+      if (!orderToUpdate) {
+        throw new Error(`Order with ID ${orderId} not found`);
+      }
+      
+      // Create a copy of the order with updated status
+      const updatedOrderDTO = {
+        ...orderToUpdate,
+        orderStatus: newStatus
+      };
+      
+      // Call the API to update the order
+      const response = await fetch(`http://localhost:8080/api/order/update/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedOrderDTO)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update order: ${response.statusText}`);
+      }
+      
+      const updatedOrder = await response.json();
+      
+      // Update local state to reflect the change
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? updatedOrder : order
+        )
+      );
+      
+      // If the updated order is the selected one, update it too
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(updatedOrder);
+      }
+      
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Failed to update order status. Please try again.');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // Function to get the next status for an order
+  const getNextStatus = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'PLACED':
+        return 'CONFIRMED';
+      case 'CONFIRMED':
+        return 'PREPARING';
+      case 'PREPARING':
+        return 'PACKED';
+      case 'PACKED':
+        return 'OUT_FOR_DELIVERY';
+      default:
+        return null;
+    }
+  };
+
+  // Function to get button text based on current status
+  const getActionButtonText = (currentStatus: string) => {
+    switch (currentStatus) {
+      case 'PLACED':
+        return 'Confirm Order';
+      case 'CONFIRMED':
+        return 'Start Preparing';
+      case 'PREPARING':
+        return 'Mark as Packed';
+      case 'PACKED':
+        return 'Send for Delivery';
+      default:
+        return '';
+    }
+  };
+
+  // Function to format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  // Function to get color class for status badge
+  const getStatusColorClass = (status: string) => {
+    switch (status) {
+      case 'DELIVERED':
+        return 'bg-green-100 text-green-800';
+      case 'OUT_FOR_DELIVERY':
+        return 'bg-blue-100 text-blue-800';
+      case 'PACKED':
+        return 'bg-indigo-100 text-indigo-800';
+      case 'PREPARING':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'CONFIRMED':
+        return 'bg-orange-100 text-orange-800';
+      case 'PLACED':
+        return 'bg-purple-100 text-purple-800';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -95,18 +242,27 @@ const RestaurantDashboard: React.FC = () => {
                   <h2 className="text-lg font-semibold mb-4">Pending Orders</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {pendingOrders.map(order => (
-                      <OrderCard 
-                        key={order.id} 
-                        order={order} 
-                        onClick={handleOrderClick}
-                      />
-                    ))}
-                    
-                    {pendingOrders.length === 0 && (
+                    {loading ? (
                       <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
-                        No pending orders at the moment.
+                        Loading orders...
                       </div>
+                    ) : (
+                      <>
+                        {pendingOrders.map(order => (
+                          <OrderCard
+                            key={order.id}
+                            order={order}
+                            onClick={handleOrderClick}
+                            statusColorClass={getStatusColorClass(order.orderStatus)}
+                          />
+                        ))}
+                        
+                        {pendingOrders.length === 0 && (
+                          <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
+                            No pending orders at the moment.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -116,18 +272,27 @@ const RestaurantDashboard: React.FC = () => {
                   <h2 className="text-lg font-semibold mb-4">Active Orders</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {activeOrders.map(order => (
-                      <OrderCard 
-                        key={order.id} 
-                        order={order} 
-                        onClick={handleOrderClick}
-                      />
-                    ))}
-                    
-                    {activeOrders.length === 0 && (
+                    {loading ? (
                       <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
-                        No active orders at the moment.
+                        Loading orders...
                       </div>
+                    ) : (
+                      <>
+                        {activeOrders.map(order => (
+                          <OrderCard
+                            key={order.id}
+                            order={order}
+                            onClick={handleOrderClick}
+                            statusColorClass={getStatusColorClass(order.orderStatus)}
+                          />
+                        ))}
+                        
+                        {activeOrders.length === 0 && (
+                          <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
+                            No active orders at the moment.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -137,18 +302,27 @@ const RestaurantDashboard: React.FC = () => {
                   <h2 className="text-lg font-semibold mb-4">Completed Orders</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {completedOrders.slice(0, 4).map(order => (
-                      <OrderCard 
-                        key={order.id} 
-                        order={order} 
-                        onClick={handleOrderClick}
-                      />
-                    ))}
-                    
-                    {completedOrders.length === 0 && (
+                    {loading ? (
                       <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
-                        No completed orders yet.
+                        Loading orders...
                       </div>
+                    ) : (
+                      <>
+                        {completedOrders.slice(0, 4).map(order => (
+                          <OrderCard
+                            key={order.id}
+                            order={order}
+                            onClick={handleOrderClick}
+                            statusColorClass={getStatusColorClass(order.orderStatus)}
+                          />
+                        ))}
+                        
+                        {completedOrders.length === 0 && (
+                          <div className="md:col-span-2 bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
+                            No completed orders yet.
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   
@@ -170,33 +344,28 @@ const RestaurantDashboard: React.FC = () => {
                 {selectedOrder ? (
                   <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
                     <h2 className="text-lg font-semibold mb-3">
-                      Order #{selectedOrder.id}
+                      Order #{selectedOrder.id.substring(0, 8)}
                     </h2>
                     
                     <div className="mb-4">
                       <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        selectedOrder.status === 'delivered' 
-                          ? 'bg-green-100 text-green-800' 
-                          : selectedOrder.status === 'cancelled'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-blue-100 text-blue-800'
+                        getStatusColorClass(selectedOrder.orderStatus)
                       }`}>
-                        {selectedOrder.status.replace('-', ' ').toUpperCase()}
+                        {selectedOrder.orderStatus}
                       </span>
                       <p className="text-sm text-gray-500 mt-1">
-                        {new Date(selectedOrder.createdAt).toLocaleString()}
+                        {formatDate(selectedOrder.placeAt)}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Last updated: {formatDate(selectedOrder.updatedAt)}
                       </p>
                     </div>
                     
                     <div className="mb-4">
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Customer Information</h3>
-                      <p className="text-sm">John Doe</p>
-                      <p className="text-sm">555-123-4567</p>
-                    </div>
-                    
-                    <div className="mb-4">
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Delivery Address</h3>
-                      <p className="text-sm">{selectedOrder.deliveryAddress}</p>
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">Payment Status</h3>
+                      <p className={`text-sm ${selectedOrder.paymentStatus === 'PAID' ? 'text-green-600' : 'text-red-600'}`}>
+                        {selectedOrder.paymentStatus}
+                      </p>
                     </div>
                     
                     <div className="mb-6">
@@ -205,59 +374,42 @@ const RestaurantDashboard: React.FC = () => {
                         {selectedOrder.items.map((item, index) => (
                           <li key={index} className="py-2">
                             <div className="flex justify-between">
-                              <span>{item.quantity}x {item.item.name}</span>
-                              <span>${(item.item.price * item.quantity).toFixed(2)}</span>
+                              <span>{item.quantity}x {item.name}</span>
+                              <span>${item.totalPrice.toFixed(2)}</span>
                             </div>
-                            {item.customizations && item.customizations.length > 0 && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {item.customizations.map(c => c.choiceName).join(', ')}
-                              </p>
-                            )}
                           </li>
                         ))}
                       </ul>
                     </div>
                     
                     <div className="border-t pt-4">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal</span>
-                        <span>${selectedOrder.subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm mt-1">
-                        <span>Delivery Fee</span>
-                        <span>${selectedOrder.deliveryFee.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm mt-1">
-                        <span>Tax</span>
-                        <span>${selectedOrder.tax.toFixed(2)}</span>
-                      </div>
                       <div className="flex justify-between font-semibold mt-2">
                         <span>Total</span>
-                        <span>${selectedOrder.total.toFixed(2)}</span>
+                        <span>${selectedOrder.totalPrice.toFixed(2)}</span>
                       </div>
                     </div>
                     
-                    {selectedOrder.status === 'pending' && (
-                      <div className="mt-6 grid grid-cols-2 gap-3">
-                        <button className="py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors">
-                          Reject
+                    {/* Action buttons based on order status */}
+                    {(['PLACED', 'CONFIRMED', 'PREPARING', 'PACKED'].includes(selectedOrder.orderStatus)) && (
+                      <div className="mt-6 grid grid-cols-1 gap-3">
+                        <button 
+                          className="py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => updateOrderStatus(selectedOrder.id, getNextStatus(selectedOrder.orderStatus))}
+                          disabled={updatingOrderId === selectedOrder.id}
+                        >
+                          {updatingOrderId === selectedOrder.id ? 'Updating...' : getActionButtonText(selectedOrder.orderStatus)}
                         </button>
-                        <button className="py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">
-                          Accept
-                        </button>
+                        
+                        {selectedOrder.orderStatus !== 'CANCELLED' && (
+                          <button 
+                            className="py-2 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => updateOrderStatus(selectedOrder.id, 'CANCELLED')}
+                            disabled={updatingOrderId === selectedOrder.id}
+                          >
+                            {updatingOrderId === selectedOrder.id ? 'Updating...' : 'Cancel Order'}
+                          </button>
+                        )}
                       </div>
-                    )}
-                    
-                    {selectedOrder.status === 'confirmed' && (
-                      <button className="mt-6 w-full py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors">
-                        Start Preparing
-                      </button>
-                    )}
-                    
-                    {selectedOrder.status === 'preparing' && (
-                      <button className="mt-6 w-full py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors">
-                        Ready for Pickup
-                      </button>
                     )}
                   </div>
                 ) : (

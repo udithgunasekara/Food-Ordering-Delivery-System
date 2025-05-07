@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { MapPin, Navigation } from 'lucide-react';
 import { Order } from '../../types';
 import { restaurants } from '../../data/mockData';
@@ -19,16 +19,80 @@ const DeliveryMap: React.FC<DeliveryMapProps> = ({ order, currentStep, onUpdateS
     { key: 'delivered', label: 'Order Delivered' }
   ];
 
+  const updateOrderStatus = useCallback(async () => {
+    if (currentStep === steps.length - 1) {
+      try {
+        console.log('Updating order status to delivered for order:', order);
+        const response = await fetch(`http://localhost:8080/api/order/update/${order.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...order,
+            status: 'delivered'
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update order status');
+        }
+      } catch (error) {
+        console.error('Error updating order status:', error);
+      }
+    }
+  }, [currentStep, order, steps.length]);
+
+  useEffect(() => {
+    // Call the API when order is delivered
+    updateOrderStatus();
+  }, [currentStep, updateOrderStatus]);
+
+  useEffect(() => {
+    // Dynamically import Leaflet to avoid SSR issues
+    Promise.all([
+      import('leaflet'),
+      import('leaflet/dist/leaflet.css')
+    ]).then(([L]) => {
+      // Initialize the map
+      const map = L.map('delivery-map').setView(
+        [parseFloat(order.restaurantLatitude || '7.292115'), parseFloat(order.restaurantLongitude || '80.637551')],
+        13
+      );
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Add restaurant marker
+      L.marker([parseFloat(order.restaurantLatitude || '7.292115'), parseFloat(order.restaurantLongitude || '80.637551')])
+        .addTo(map)
+        .bindPopup(restaurant?.name || 'Restaurant')
+        .openPopup();
+
+      // Add customer marker
+      L.marker([parseFloat(order.customerLatitude || '7.306230'), parseFloat(order.customerLongitude || '80.722139')])
+        .addTo(map)
+        .bindPopup('Customer Location');
+
+      // Add polyline for route
+      L.polyline([
+        [parseFloat(order.restaurantLatitude || '7.292115'), parseFloat(order.restaurantLongitude || '80.637551')],
+        [parseFloat(order.customerLatitude || '7.306230'), parseFloat(order.customerLongitude || '80.722139')]
+      ], { color: 'blue' }).addTo(map);
+
+      // Cleanup on unmount
+      return () => {
+        map.remove();
+      };
+    });
+  }, [order, restaurant]);
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      {/* Map Placeholder */}
-      <div className="bg-gray-100 h-64 flex items-center justify-center">
-        <div className="text-center text-gray-500">
-          <Navigation className="w-8 h-8 mx-auto mb-2" />
-          <p>Interactive map would appear here</p>
-          <p className="text-sm">Showing route to {currentStep < 2 ? restaurant?.name : order.deliveryAddress}</p>
-        </div>
-      </div>
+      {/* Map Container */}
+      <div id="delivery-map" className="h-64"></div>
       
       <div className="p-4">
         <div className="flex items-start space-x-4 mb-4">

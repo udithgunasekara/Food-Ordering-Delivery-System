@@ -6,6 +6,9 @@ export const createCharge = async (req, res) => {
   try {
     const { amount, currency, paymentMethodId, orderId, customerEmail, customerPhone } = req.body;
 
+    // Log the incoming request body for debugging
+    console.log('Received payment request:', req.body);
+
     // Validate required fields
     if (!amount || !currency || !paymentMethodId || !orderId || !customerEmail) {
       return res.status(400).json({ 
@@ -27,6 +30,11 @@ export const createCharge = async (req, res) => {
       }
     }
 
+    // Validate amount is an integer (for Stripe)
+    if (!Number.isInteger(amount)) {
+      return res.status(400).json({ error: 'Amount must be an integer (in cents)' });
+    }
+
     const charge = await processPayment(amount, currency, paymentMethodId, orderId, customerEmail, customerPhone);
 
     // Publish payment event
@@ -43,6 +51,13 @@ export const createCharge = async (req, res) => {
 
     res.status(200).json({ success: true, charge });
   } catch (error) {
+    // Log the full error for debugging
+    console.error('Error in createCharge:', {
+      message: error.message,
+      stack: error.stack,
+      type: error.type,
+    });
+
     await sendKafkaMessage('payment-events', {
       event: 'payment-failed',
       orderId: req.body.orderId || 'unknown',
@@ -50,10 +65,15 @@ export const createCharge = async (req, res) => {
       customerEmail: req.body.customerEmail || null,
       customerPhone: req.body.customerPhone || null,
     });
+
     if (error.type === 'StripeCardError') {
       return res.status(400).json({ error: 'Card error', details: error.message });
     }
-    res.status(500).json({ error: 'Payment processing failed', details: error.message });
+
+    res.status(500).json({ 
+      error: 'Payment processing failed', 
+      details: error.message || 'Internal server error' 
+    });
   }
 };
 

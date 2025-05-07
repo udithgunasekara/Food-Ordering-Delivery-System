@@ -58,6 +58,19 @@ export interface Order {
   deliveryAddress: string;
   createdAt: string;
   estimatedDeliveryTime?: string;
+  expiresAt?: number;
+  customerLatitude?: string;
+  customerLongitude?: string;
+  restaurantLatitude?: string;
+  restaurantLongitude?: string;
+}
+
+export interface OrderItem {
+  itemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  totalPrice: number;
 }
 
 export interface Category {
